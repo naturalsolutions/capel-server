@@ -6,14 +6,18 @@ from flask import make_response
 from flask_cors import CORS
 from functools import wraps
 import jwt
-import json
+# import json
+
 
 app = Flask(__name__)
 CORS(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/portcros.db'
+app.config['DEBUG'] = True  # FIXME: if env==dev
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://localhost/portcros'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 jwtSecret = 'abcdef'
+
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -23,14 +27,15 @@ class User(db.Model):
 
     def __repr__(self):
         return '<User %r>' % self.username
-    
+
     def toJSON(self):
-        return {\
-            'id': self.id,\
-            'username': self.username,\
-            'password': self.password,\
+        return {
+            'id': self.id,
+            'username': self.username,
+            'password': self.password,
             'email': self.email
         }
+
 
 def authenticate(f):
     @wraps(f)
@@ -40,16 +45,19 @@ def authenticate(f):
             return make_response('', 401)
         token = token.split(' ')[1]
         payload = jwt.decode(token, jwtSecret, algorithm='HS256')
+        # TODO: manage token expiration for authencated access
         user = User.query.filter_by(id=payload['id']).first()
         if user is None:
             return make_response('', 403)
-        
+
         return f(*args, user)
     return decorated_function
+
 
 def authenticateOrNot(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # TODO: manage token expiration for unauthenticated access
         token = request.headers.get('Authorization')
         if token is None:
             return f(*args, None)
@@ -58,21 +66,26 @@ def authenticateOrNot(f):
         user = User.query.filter_by(id=payload['id']).first()
         if user is None:
             return make_response('', 403)
-        
+
         return f(*args, user)
     return decorated_function
+
 
 @app.route("/")
 def hello():
     return 'hello portcros-server !'
 
+
 @app.route('/api/users/login', methods=['POST'])
 def login():
+    # TODO: fields validation for user login
     try:
-        user = User.query.filter_by(username=request.json['username'], password=request.json['password']).first()
+        user = User.query.filter_by(
+            username=request.json['username'],
+            password=request.json['password']).first()
     except Exception as e:
         return jsonify(), 400
-    
+
     if user is None:
         return jsonify(), 404
 
@@ -81,23 +94,27 @@ def login():
 
     return jsonify(token=token.decode('utf8'), profile=payload)
 
+
 @app.route('/api/users/me')
 @authenticate
 def getMe(reqUser):
     reqUser = reqUser.toJSON()
     return jsonify(reqUser)
 
+
 @app.route('/api/users', methods=['POST'])
 @authenticateOrNot
 def postUsers(reqUser):
+    # TODO: fields validation for user signup
     user = request.json
     user = User(**user)
     db.session.add(user)
     db.session.commit()
     return jsonify(user.toJSON())
 
+
 @app.route('/api/users', methods=['GET'])
-@authenticateOrNot
+@authenticate
 def getUsers(reqUser):
     users = User.query.all()
     results = []
