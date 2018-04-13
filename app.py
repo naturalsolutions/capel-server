@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 import datetime
+import re
 from functools import wraps
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from flask_cors import CORS
 import jwt
@@ -18,6 +20,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWTSECRET'] = b'abcdef'
 app.config['AUTH_TYPE'] = 'Bearer'
 app.config['REFRESH_TK_TTL'] = datetime.timedelta(seconds=30)
+app.config['ACCESS_TK_TTL'] = datetime.timedelta(seconds=30)
 app.config['MIN_PWD_LEN'] = 6
 app.config['VALID_EMAIL_REGEX'] = r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
 db = SQLAlchemy(app)
@@ -59,7 +62,7 @@ def authenticate(f):
         except jwt.InvalidTokenError:
             return jsonify(reason='Invalid token.'), 401
 
-        user = User.query.filter_by(username=payload['id']).first()
+        user = User.query.filter_by(id=payload['id']).first()
 
         if user is None:
             return jsonify(reason='Unknown user'), 401
@@ -108,22 +111,33 @@ def hello():
 def login():
 
     # Required fields
-    if (len(request.json['password']) == 0 or
-            len(request.json['username']) == 0):
+    if (len(request.json['password']) == 0 or len(request.json['email']) == 0):
         return jsonify(), 400
 
     # User exists and submitted a valid password
     try:
-        user = User.query.filter_by(username=request.json['username']).first()
+        user = User.query.filter(
+            or_(
+                User.username == request.json['email'],
+                # User.username == request.json['username'],
+                # User.email == request.json['username'],
+                User.email == request.json['email']
+            )
+        ).first()
     except Exception as e:
-        return jsonify(reason='User already registered.'), 404
+        return jsonify(str(e.args)), 404
+        # return jsonify(reason='Unregistered user.'), 404
+
+    print('User:', f'{user.username}:{user.password}')
 
     if (user is None or
             not hmac.compare_digest(
-                user.password, make_digest(request.json['password']))):
+                user.password, request.json['password'])):
         return jsonify(reason='Wrong credentials.'), 404
 
+    user.username = user.email  # !!!
     payload = user.toJSON()
+
     utc_now = datetime.datetime.utcnow()
     token = jwt.encode({
         'id': user.id,
@@ -145,25 +159,24 @@ def getMe(reqUser):
 def postUsers(reqUser):
     # Signup
     user = request.get_json()
-    print('reqUser', reqUser,
-          'user', user,
-          'r.json[]', request.json['username'])
-    # if (len(user['password']) < app.config['MIN_PWD_LEN'] or
-    #         len(user['username']) == 0 or len(user['email'] == 0 or
-    #         not app.config['VALID_EMAIL_REGEX'].match(user['email']))):  # noqa
-    #     return jsonify(reason='Required field empty.'), 400
+    print('user post:', user)
+    if (len(user['password']) < app.config['MIN_PWD_LEN'] or
+            len(user['email']) == 0 or not re.match(
+                app.config['VALID_EMAIL_REGEX'], user['email'], re.IGNORECASE)):  # noqa
+        return jsonify(reason='Empty or malformed required field.'), 400
 
     user = User(**user)
+    if not user.username:
+        user.username = user.email
     user.password = make_digest(user.password)
-    # user.created = datetime.datetime.now()
+    # TODO: user.created = datetime.datetime.now()
     try:
         db.session.add(user)
         db.session.commit()
     except IntegrityError as e:
-        return jsonify(str(e.orig)), 400
+        return jsonify(str(e.orig)), 400  # FIXME: #lowerprio, see https://www.pivotaltracker.com/story/show/156689324/comments/188344433  # noqa
 
-    auth_token = jwt.encode({user.id: user.username}, app.config['JWTSECRET'], algorithm='HS256')  # noqa
-    return jsonify(user=user.toJSON(), token=auth_token.decode('utf-8'))
+    return jsonify(user=user.toJSON())
 
 
 @app.route('/api/users', methods=['GET'])
@@ -182,4 +195,3 @@ def make_digest(msg):
         app.config['JWTSECRET'],
         msg=msg.encode(),
         digestmod='sha256').hexdigest()
-
