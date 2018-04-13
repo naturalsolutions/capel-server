@@ -1,6 +1,7 @@
+#!/usr/bin/python3
 import datetime
 from functools import wraps
-from flask import Flask, jsonify, request, make_response
+from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from flask_cors import CORS
@@ -143,7 +144,10 @@ def getMe(reqUser):
 @authenticateOrNot
 def postUsers(reqUser):
     # Signup
-    user = request.json
+    user = request.get_json()
+    print('reqUser', reqUser,
+          'user', user,
+          'r.json[]', request.json['username'])
     # if (len(user['password']) < app.config['MIN_PWD_LEN'] or
     #         len(user['username']) == 0 or len(user['email'] == 0 or
     #         not app.config['VALID_EMAIL_REGEX'].match(user['email']))):  # noqa
@@ -158,8 +162,8 @@ def postUsers(reqUser):
     except IntegrityError as e:
         return jsonify(str(e.orig)), 400
 
-    auth_token = jwt.encode(user.id, app.config['JWTSECRET'], algorithm='HS256')  # noqa
-    return jsonify(user=user.toJSON(), token=jwt.decode(auth_token, 'utf-8'))
+    auth_token = jwt.encode({user.id: user.username}, app.config['JWTSECRET'], algorithm='HS256')  # noqa
+    return jsonify(user=user.toJSON(), token=auth_token.decode('utf-8'))
 
 
 @app.route('/api/users', methods=['GET'])
@@ -178,3 +182,4 @@ def make_digest(msg):
         app.config['JWTSECRET'],
         msg=msg.encode(),
         digestmod='sha256').hexdigest()
+
