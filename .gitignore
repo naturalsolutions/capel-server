@@ -101,4 +101,4 @@ ENV/
 .mypy_cache/
 
 .vscodedb
-credentials.py
+dbcredentials.py
