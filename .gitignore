@@ -102,3 +102,4 @@ ENV/
 
 .vscodedb
 dbcredentials.py
+__init__.py
