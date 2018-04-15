@@ -153,9 +153,14 @@ def postUsers(reqUser):
     # Signup/Register
     user = request.get_json()
 
-    if (len(user['password']) < app.config['MIN_PWD_LEN'] or
-            len(user['email']) == 0 or not re.match(
-                app.config['VALID_EMAIL_REGEX'], user['email'], re.IGNORECASE)):  # noqa
+    try:
+        if (user.get('password') in (None, '') or
+            len(user['password']) < app.config['MIN_PWD_LEN'] or
+            user.get('email') in (None, '') or
+            not re.match(
+                app.config['VALID_EMAIL_REGEX'], user['email'], re.I)):
+            return jsonify(error='Empty or malformed required field.'), 400
+    except Exception:
         return jsonify(error='Empty or malformed required field.'), 400
 
     user = User(**user)
