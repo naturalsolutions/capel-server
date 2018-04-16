@@ -66,9 +66,9 @@ def authenticate(f):
                 token, key=app.config['JWTSECRET'], algorithm='HS256')
 
             user = User.query.filter_by(id=payload['id']).first()
-
             if user is None:
                 return jsonify(error='Could not authenticate.'), 401
+
         except Exception:
             return jsonify(error='Could not authenticate.'), 401
 
@@ -157,7 +157,10 @@ def getMe(reqUser):
 def postUsers(reqUser):
     # Signup/Register
     if reqUser is None:
-        user = request.get_json()
+        try:
+            user = request.get_json()
+        except Flask.JSONBadRequest:
+            return jsonify(error='Invalid JSON.')
     else:
         user = reqUser
 
