@@ -166,14 +166,14 @@ def postUsers(reqUser):
         user = reqUser
 
     try:
-        if (reqUser is None and not validate_user(user)):
+        if (reqUser is None and not validate_user_create(user)):
             app.logger.debug(user)
             return jsonify(error='Empty or malformed required field.'), 400
 
         valid_boats = None
         boats = user.get('boats', None)
-        if (boats is not None and (type(boats) == 'list') and
-                not validate_boats(boats)):
+        if (boats is None or not isinstance(boats, list)
+                or not validate_boats(boats)):
             app.logger.warn('User boats declaration error.')
             raise
 
@@ -230,7 +230,7 @@ def renew_refresh_token(key):
         app.config['JWTSECRET'], algorithm='HS256')
 
 
-def validate_user(user):
+def validate_user_create(user):
     return (user.get('password') not in (None, '') and
             len(user['password']) >= app.config['VALID_PWD_MIN_LEN'] and
             user.get('email') not in (None, '') and
@@ -240,6 +240,8 @@ def validate_user(user):
 
 def validate_boats(boats):
     for boat in boats:
-        if (boat in (None, '') or boat.get('name') in (None, '') or
+        if (boat in (None, '') or
+            boat.get('name') in (None, '') or
                 boat.get('immatriculation') in (None, '')):
             return False
+    return True
