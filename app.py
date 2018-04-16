@@ -142,12 +142,7 @@ def login():
                 user.password, request.json['password'])):
         return jsonify(error='Wrong credentials.'), 404
 
-    utc_now = datetime.datetime.utcnow()
-    token = jwt.encode({
-        'id': user.id,
-        'exp': utc_now + app.config['JWT_REFRESH_EXP']},
-        app.config['JWTSECRET'], algorithm='HS256')
-
+    token = renew_refresh_token(user.id)
     return jsonify(token=token.decode('utf-8'), profile=user.toJSON())
 
 
@@ -171,24 +166,18 @@ def postUsers(reqUser):
         user = reqUser
 
     try:
-        if (reqUser is None and
-            (user.get('password') in (None, '') or
-             len(user['password']) < app.config['VALID_PWD_MIN_LEN'] or
-             user.get('email') in (None, '') or
-             not re.match(
-                app.config['VALID_EMAIL_REGEX'], user['email'], re.I))):
+        if (reqUser is None and not validate_user(user)):
+            app.logger.debug(user)
             return jsonify(error='Empty or malformed required field.'), 400
 
         valid_boats = None
         boats = user.get('boats', None)
-        if (boats is not None):
-            for boat in boats:
-                if (boat is None or boat.get('name') in (None, '') or
-                        boat.get('immatriculation') in (None, '')):
-                    app.logger.warn('User boats declaration error.')
-                    raise
+        if (boats is not None and (type(boats) == 'list') and
+                not validate_boats(boats)):
+            app.logger.warn('User boats declaration error.')
+            raise
 
-            valid_boats = json.dumps(boats)
+        valid_boats = json.dumps(boats)
         user['boats'] = valid_boats
 
         user = User(**user)
@@ -212,7 +201,11 @@ def postUsers(reqUser):
         app.logger.warn(''.join(format_exception_only(err_type, err_value)))
         return jsonify(str(e.orig)), 400
 
-    return jsonify(user.toJSON())
+    if reqUser:
+        token = renew_refresh_token(user.id)
+        return jsonify(token=token.decode('utf-8'), user=user.toJSON())
+    else:
+        return jsonify(user.toJSON())
 
 
 @app.route('/api/users', methods=['GET'])
@@ -227,3 +220,26 @@ def make_digest(msg):
         app.config['JWTSECRET'],
         msg=msg.encode(),
         digestmod='sha256').hexdigest()
+
+
+def renew_refresh_token(key):
+    utc_now = datetime.datetime.utcnow()
+    return jwt.encode({
+        'id': key,
+        'exp': utc_now + app.config['JWT_REFRESH_EXP']},
+        app.config['JWTSECRET'], algorithm='HS256')
+
+
+def validate_user(user):
+    return (user.get('password') not in (None, '') and
+            len(user['password']) >= app.config['VALID_PWD_MIN_LEN'] and
+            user.get('email') not in (None, '') and
+            re.match(
+                app.config['VALID_EMAIL_REGEX'], user['email'], re.I))
+
+
+def validate_boats(boats):
+    for boat in boats:
+        if (boat in (None, '') or boat.get('name') in (None, '') or
+                boat.get('immatriculation') in (None, '')):
+            return False
