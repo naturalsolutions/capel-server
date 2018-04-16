@@ -14,7 +14,10 @@ import hmac
 import json
 # import uuid
 
-from dbcredentials import dbcredentials as dba
+try:
+    from dbcredentials import dbcredentials as dba
+except Exception:
+    dba = None
 
 
 app = Flask(__name__)
