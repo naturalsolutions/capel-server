@@ -25,10 +25,10 @@ CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{dba}localhost/portcros'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWTSECRET'] = b'abcdef'
-app.config['AUTH_TYPE'] = 'Bearer'
-app.config['REFRESH_TK_TTL'] = datetime.timedelta(seconds=30)
-# app.config['ACCESS_TK_TTL'] = datetime.timedelta(seconds=30)
-app.config['MIN_PWD_LEN'] = 6
+app.config['JWT_AUTH_TYPE'] = 'Bearer'
+app.config['JWT_REFRESH_EXP'] = datetime.timedelta(seconds=30)
+# app.config['JWT_ACCESS_EXP'] = datetime.timedelta(seconds=30)
+app.config['VALID_PWD_MIN_LEN'] = 6
 app.config['VALID_EMAIL_REGEX'] = r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
 db = SQLAlchemy(app)
 
@@ -62,7 +62,7 @@ def authenticate(f):
         try:
             auth_type, token = request.headers.get('Authorization').split(' ', 1)  # noqa
 
-            if token is None or auth_type != app.config['AUTH_TYPE']:
+            if token is None or auth_type != app.config['JWT_AUTH_TYPE']:
                 return jsonify(error='Invalid token.'), 401
 
             payload = jwt.decode(
@@ -114,12 +114,13 @@ def hello():
 
 @app.route('/api/users/login', methods=['POST'])
 def login():
+    user = None
 
     try:
         if request.json is None:
             return jsonify(error='Invalid JSON.')
     except Flask.JSONBadRequest:
-            return jsonify(error='Invalid JSON.')
+        return jsonify(error='Invalid JSON.')
 
     # Required fields
     if (request.json.get('password') in (None, '') or
@@ -130,8 +131,10 @@ def login():
     try:
         user = User.query.filter(User.email == request.json['email']).first()
     except Exception as e:
-        return make_response('Could not authenticate.', 401, {
-            'WWW-Authenticate': f'{app.config["AUTH_TYPE"]} realm="CAPEL login required"'})  # noqa
+        return make_response(
+            'Could not authenticate.', 401,
+            {'WWW-Authenticate': f'{app.config["JWT_AUTH_TYPE"]}'
+                                 ' realm="CAPEL login required"'})
 
     # User submitted a valid password
     if (user is None or
@@ -142,7 +145,7 @@ def login():
     utc_now = datetime.datetime.utcnow()
     token = jwt.encode({
         'id': user.id,
-        'exp': utc_now + app.config['REFRESH_TK_TTL']},
+        'exp': utc_now + app.config['JWT_REFRESH_EXP']},
         app.config['JWTSECRET'], algorithm='HS256')
 
     return jsonify(token=token.decode('utf-8'), profile=user.toJSON())
@@ -170,8 +173,9 @@ def postUsers(reqUser):
     try:
         if (reqUser is None and
             (user.get('password') in (None, '') or
-             len(user['password']) < app.config['MIN_PWD_LEN'] or
-             user.get('email') in (None, '') or not re.match(
+             len(user['password']) < app.config['VALID_PWD_MIN_LEN'] or
+             user.get('email') in (None, '') or
+             not re.match(
                 app.config['VALID_EMAIL_REGEX'], user['email'], re.I))):
             return jsonify(error='Empty or malformed required field.'), 400
 
@@ -202,9 +206,10 @@ def postUsers(reqUser):
             db.session.merge(user)
         db.session.commit()
     except (IntegrityError, Exception) as e:
+        db.session.rollback()
         # FIXME: #lowerprio, https://www.pivotaltracker.com/story/show/156689324/comments/188344433  # noqa
-        etype, value, tb = sys.exc_info()
-        app.logger.warn(''.join(format_exception_only(etype, value)))
+        err_type, err_value, tb = sys.exc_info()
+        app.logger.warn(''.join(format_exception_only(err_type, err_value)))
         return jsonify(str(e.orig)), 400
 
     return jsonify(user.toJSON())
