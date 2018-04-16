@@ -93,14 +93,13 @@ def authenticateOrNot(f):
                 token, key=app.config['JWTSECRET'], algorithm='HS256')
 
             user = User.query.filter_by(id=payload['id']).first()
+            if user is None:
+                return jsonify(error='Could not authenticate.'), 403
 
         except jwt.ExpiredSignatureError:
             return jsonify(error='Token Expired.'), 401
         except Exception:
             return jsonify(error='Could not authenticate.'), 401
-
-        if user is None:
-            return jsonify(error='Could not authenticate.'), 403
 
         return f(user, *args, **kwargs)
     return decorated_function
