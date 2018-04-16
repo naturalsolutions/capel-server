@@ -67,10 +67,9 @@ def authenticate(f):
 
             user = User.query.filter_by(id=payload['id']).first()
 
+            if user is None:
+                return jsonify(error='Could not authenticate.'), 401
         except Exception:
-            return jsonify(error='Could not authenticate.'), 401
-
-        if user is None:
             return jsonify(error='Could not authenticate.'), 401
 
         return f(user, *args, **kwargs)
