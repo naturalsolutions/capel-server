@@ -1,42 +1,30 @@
 #!/usr/bin/python3
 
+import os
 import sys
 import datetime
 import re
 from traceback import format_exception_only
 from functools import wraps
 from flask import Flask, jsonify, request, make_response
-from flask_sqlalchemy import SQLAlchemy  # , UUID
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from flask_cors import CORS
 import jwt
 import hmac
 import json
-# import uuid
-
-try:
-    from dbcredentials import dbcredentials as dba
-except Exception:
-    dba = None
 
 
 app = Flask(__name__)
 CORS(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{dba}localhost/portcros'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWTSECRET'] = b'abcdef'
-app.config['JWT_AUTH_TYPE'] = 'Bearer'
-app.config['JWT_REFRESH_EXP'] = datetime.timedelta(seconds=30)
-# app.config['JWT_ACCESS_EXP'] = datetime.timedelta(seconds=30)
-app.config['VALID_PWD_MIN_LEN'] = 6
-app.config['VALID_EMAIL_REGEX'] = r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
+app.config.from_object('app_conf')
+if os.environ.get('CAPEL_CONF', None):
+    app.config.from_envvar('CAPEL_CONF')
 db = SQLAlchemy(app)
 
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    # uid = db.Column(UUID(as_uuid=True), primary_key=True,
-    #                 default=lambda: uuid.uuid4().hex)
     username = db.Column(db.String(64), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(255), unique=True, nullable=False)
@@ -116,33 +104,35 @@ def hello():
 def login():
     user = None
 
-    try:
-        if request.json is None:
-            return jsonify(error='Invalid JSON.')
-    except Flask.JSONBadRequest:
-        return jsonify(error='Invalid JSON.')
+    if request.json is None:
+        return make_response(
+            'Could not authenticate.', 401,
+            {'WWW-Authenticate': f'{app.config["JWT_AUTH_TYPE"]}'
+                                 ' realm="CAPEL login required"'})
 
     # Required fields
     if (request.json.get('password') in (None, '') or
-            request.json.get('email') in (None, '')):
-        return jsonify(), 400
+            request.json.get('username') in (None, '')):
+        return make_response(
+            'Could not authenticate.', 401,
+            {'WWW-Authenticate': f'{app.config["JWT_AUTH_TYPE"]}'
+                                 ' realm="CAPEL login required"'})
 
-    # User is already registered
+    # Registered user
     try:
-        user = User.query.filter(User.email == request.json['email']).first()
+        user = User.query.filter_by(username=request.json['username']).first()
     except Exception as e:
         return make_response(
             'Could not authenticate.', 401,
             {'WWW-Authenticate': f'{app.config["JWT_AUTH_TYPE"]}'
                                  ' realm="CAPEL login required"'})
 
-    # User submitted a valid password
-    if (user is None or
-            not hmac.compare_digest(
-                user.password, request.json['password'])):
-        return jsonify(error='Wrong credentials.'), 404
+    # Valid password
+    if (user and not hmac.compare_digest(
+            user.password, make_digest(request.json['password']))):
+        return jsonify(error='Wrong credentials.'), 401
 
-    token = renew_refresh_token(user.id)
+    token = generate_id_token(user.id)
     return jsonify(token=token.decode('utf-8'), profile=user.toJSON())
 
 
@@ -157,42 +147,33 @@ def getMe(reqUser):
 @authenticateOrNot
 def postUsers(reqUser):
     # Signup/Register
-    if reqUser is None:
-        try:
-            user = request.get_json()
-        except Flask.JSONBadRequest:
-            return jsonify(error='Invalid JSON.')
-    else:
-        user = reqUser
+    try:
+        user = request.get_json()
+    except Flask.JSONBadRequest:
+        return jsonify(error='Invalid JSON.')
 
     try:
-        if (reqUser is None and not validate_user_create(user)):
-            app.logger.debug(user)
+        if not validate_required(user):
             return jsonify(error='Empty or malformed required field.'), 400
 
-        valid_boats = None
         boats = user.get('boats', None)
-        if (boats is None or not isinstance(boats, list)
-                or not validate_boats(boats)):
-            app.logger.warn('User boats declaration error.')
-            raise
+        if (boats and
+                (not isinstance(boats, list) or not validate_boats(boats))):
+            return jsonify(error='Invalid JSON.')
 
-        valid_boats = json.dumps(boats)
-        user['boats'] = valid_boats
+        try:
+            user['boats'] = json.dumps(boats)
+        except TypeError:
+            return jsonify(error='Invalid JSON.')
 
+        user['password'] = make_digest(user['password'])
         user = User(**user)
-        if not user.username:
-            user.username = user.email
-        user.password = make_digest(user.password)
 
     except Exception:
         return jsonify(error='Empty or malformed required field.'), 400
 
     try:
-        if reqUser is None:
-            db.session.add(user)
-        else:
-            db.session.merge(user)
+        db.session.add(user)
         db.session.commit()
     except (IntegrityError, Exception) as e:
         db.session.rollback()
@@ -201,11 +182,7 @@ def postUsers(reqUser):
         app.logger.warn(''.join(format_exception_only(err_type, err_value)))
         return jsonify(str(e.orig)), 400
 
-    if reqUser:
-        token = renew_refresh_token(user.id)
-        return jsonify(token=token.decode('utf-8'), user=user.toJSON())
-    else:
-        return jsonify(user.toJSON())
+    return jsonify(user.toJSON())
 
 
 @app.route('/api/users', methods=['GET'])
@@ -222,17 +199,18 @@ def make_digest(msg):
         digestmod='sha256').hexdigest()
 
 
-def renew_refresh_token(key):
+def generate_id_token(key):
     utc_now = datetime.datetime.utcnow()
     return jwt.encode({
         'id': key,
-        'exp': utc_now + app.config['JWT_REFRESH_EXP']},
+        'exp': utc_now + app.config['JWT_ID_TK_EXP']},
         app.config['JWTSECRET'], algorithm='HS256')
 
 
-def validate_user_create(user):
+def validate_required(user):
     return (user.get('password') not in (None, '') and
             len(user['password']) >= app.config['VALID_PWD_MIN_LEN'] and
+            user.get('username') not in (None, '') and
             user.get('email') not in (None, '') and
             re.match(
                 app.config['VALID_EMAIL_REGEX'], user['email'], re.I))
@@ -242,6 +220,6 @@ def validate_boats(boats):
     for boat in boats:
         if (boat in (None, '') or
             boat.get('name') in (None, '') or
-                boat.get('immatriculation') in (None, '')):
+                boat.get('matriculation') in (None, '')):
             return False
     return True
