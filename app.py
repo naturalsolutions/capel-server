@@ -151,7 +151,10 @@ def getMe(reqUser):
 @authenticateOrNot
 def postUsers(reqUser):
     # Signup/Register
-    user = request.get_json()
+    if reqUser is None:
+        user = request.get_json()
+    else:
+        user = reqUser
 
     try:
         if (user.get('password') in (None, '') or
@@ -160,19 +163,23 @@ def postUsers(reqUser):
             not re.match(
                 app.config['VALID_EMAIL_REGEX'], user['email'], re.I)):
             return jsonify(error='Empty or malformed required field.'), 400
+
     except Exception:
         return jsonify(error='Empty or malformed required field.'), 400
 
     user = User(**user)
-
     if not user.username:
         user.username = user.email
     user.password = make_digest(user.password)
     try:
-        db.session.add(user)
+        if reqUser is None:
+            db.session.add(user)
+        else:
+            db.session.merge(user)
         db.session.commit()
     except (IntegrityError, Exception) as e:
         # FIXME: #lowerprio, see https://www.pivotaltracker.com/story/show/156689324/comments/188344433  # noqa
+        # NOTE: unique constraint exception: don't reveal too much info here but provide a meaningfull msg anyway  # noqa
         etype, value, tb = sys.exc_info()
         app.logger.debug(''.join(format_exception_only(etype, value)))
         return jsonify(str(e.orig)), 400
