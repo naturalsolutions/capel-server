@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from flask_cors import CORS
 import jwt
 import hmac
+import json
 # import uuid
 
 from dbcredentials import dbcredentials as dba
@@ -36,6 +37,7 @@ class User(db.Model):
     username = db.Column(db.String(64), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(255), unique=True, nullable=False)
+    boats = db.Column(db.String(255))
 
     def __repr__(self):
         return '<User %r>' % self.username
@@ -45,24 +47,26 @@ class User(db.Model):
             'id': self.id,
             'username': self.username,
             'password': self.password,
-            'email': self.email
+            'email': self.email,
+            'boats': self.boats
         }
 
 
 def authenticate(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-
-        auth_type, token = request.headers.get('Authorization').split(' ', 1)
-
-        if auth_type != app.config['AUTH_TYPE'] or token is None:
-            return jsonify(error='Invalid token.'), 401
-
         user = None
         try:
+            auth_type, token = request.headers.get('Authorization').split(' ', 1)  # noqa
+
+            if token is None or auth_type != app.config['AUTH_TYPE']:
+                return jsonify(error='Invalid token.'), 401
+
             payload = jwt.decode(
                 token, key=app.config['JWTSECRET'], algorithm='HS256')
+
             user = User.query.filter_by(id=payload['id']).first()
+
         except Exception:
             return jsonify(error='Could not authenticate.'), 401
 
@@ -76,25 +80,27 @@ def authenticate(f):
 def authenticateOrNot(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        token = request.headers.get('Authorization')
-
-        if token is None:
-            return f(None, *args, **kwargs)
-
-        token = token.split(' ', 1)
-
+        user = None
         try:
+            token = request.headers.get('Authorization')
+
+            if token is None:
+                return f(None, *args, **kwargs)
+
+            token = token.split(' ', 1)
+
             payload = jwt.decode(
                 token, key=app.config['JWTSECRET'], algorithm='HS256')
+
+            user = User.query.filter_by(id=payload['id']).first()
+
         except jwt.ExpiredSignatureError:
             return jsonify(error='Token Expired.'), 401
         except Exception:
-            return jsonify(error='Invalid token.'), 401
-
-        user = User.query.filter_by(id=payload['id']).first()
+            return jsonify(error='Could not authenticate.'), 401
 
         if user is None:
-            return jsonify(''), 403
+            return jsonify(error='Could not authenticate.'), 403
 
         return f(user, *args, **kwargs)
     return decorated_function
@@ -115,7 +121,8 @@ def login():
             return jsonify(error='Invalid JSON.')
 
     # Required fields
-    if (len(request.json['password']) == 0 or len(request.json['email']) == 0):
+    if (request.json.get('password') in (None, '') or
+            request.json.get('email') in (None, '')):
         return jsonify(), 400
 
     # User is already registered
@@ -157,20 +164,33 @@ def postUsers(reqUser):
         user = reqUser
 
     try:
-        if (user.get('password') in (None, '') or
-            len(user['password']) < app.config['MIN_PWD_LEN'] or
-            user.get('email') in (None, '') or
-            not re.match(
-                app.config['VALID_EMAIL_REGEX'], user['email'], re.I)):
+        if (reqUser is None and
+            (user.get('password') in (None, '') or
+             len(user['password']) < app.config['MIN_PWD_LEN'] or
+             user.get('email') in (None, '') or not re.match(
+                app.config['VALID_EMAIL_REGEX'], user['email'], re.I))):
             return jsonify(error='Empty or malformed required field.'), 400
+
+        valid_boats = None
+        boats = user.get('boats', None)
+        if (boats is not None):
+            for boat in boats:
+                if (boat is None or boat.get('name') in (None, '') or
+                        boat.get('immatriculation') in (None, '')):
+                    app.logger.warn('User boats declaration error.')
+                    raise
+
+            valid_boats = json.dumps(boats)
+        user['boats'] = valid_boats
+
+        user = User(**user)
+        if not user.username:
+            user.username = user.email
+        user.password = make_digest(user.password)
 
     except Exception:
         return jsonify(error='Empty or malformed required field.'), 400
 
-    user = User(**user)
-    if not user.username:
-        user.username = user.email
-    user.password = make_digest(user.password)
     try:
         if reqUser is None:
             db.session.add(user)
@@ -178,10 +198,9 @@ def postUsers(reqUser):
             db.session.merge(user)
         db.session.commit()
     except (IntegrityError, Exception) as e:
-        # FIXME: #lowerprio, see https://www.pivotaltracker.com/story/show/156689324/comments/188344433  # noqa
-        # NOTE: unique constraint exception: don't reveal too much info here but provide a meaningfull msg anyway  # noqa
+        # FIXME: #lowerprio, https://www.pivotaltracker.com/story/show/156689324/comments/188344433  # noqa
         etype, value, tb = sys.exc_info()
-        app.logger.debug(''.join(format_exception_only(etype, value)))
+        app.logger.warn(''.join(format_exception_only(etype, value)))
         return jsonify(str(e.orig)), 400
 
     return jsonify(user.toJSON())
