@@ -6,7 +6,7 @@ import datetime
 import re
 from traceback import format_exception_only
 from functools import wraps
-from flask import Flask, jsonify, request, make_response
+from flask import (Flask, jsonify, request, make_response)
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from flask_cors import CORS
@@ -41,6 +41,12 @@ class User(db.Model):
             'email': self.email,
             'boats': self.boats
         }
+
+
+@app.before_first_request
+def init_db():
+    # Initialize database schema
+    db.create_all()
 
 
 def authenticate(f):
@@ -104,14 +110,9 @@ def hello():
 def login():
     user = None
 
-    if request.json is None:
-        return make_response(
-            'Could not authenticate.', 401,
-            {'WWW-Authenticate': f'{app.config["JWT_AUTH_TYPE"]}'
-                                 ' realm="CAPEL login required"'})
-
     # Required fields
-    if (request.json.get('password') in (None, '') or
+    if (request.json is None or
+        request.json.get('password') in (None, '') or
             request.json.get('username') in (None, '')):
         return make_response(
             'Could not authenticate.', 401,
@@ -123,7 +124,7 @@ def login():
         user = User.query.filter_by(username=request.json['username']).first()
     except Exception as e:
         return make_response(
-            'Could not authenticate.', 401,
+            'Could not authenticate bla.', 401,
             {'WWW-Authenticate': f'{app.config["JWT_AUTH_TYPE"]}'
                                  ' realm="CAPEL login required"'})
 
@@ -153,7 +154,7 @@ def postUsers(reqUser):
         return jsonify(error='Invalid JSON.')
 
     try:
-        if not validate_required(user):
+        if not users_validate_required(user):
             return jsonify(error='Empty or malformed required field.'), 400
 
         boats = user.get('boats', None)
@@ -207,7 +208,7 @@ def generate_id_token(key):
         app.config['JWTSECRET'], algorithm='HS256')
 
 
-def validate_required(user):
+def users_validate_required(user):
     return (user.get('password') not in (None, '') and
             len(user['password']) >= app.config['VALID_PWD_MIN_LEN'] and
             user.get('username') not in (None, '') and
