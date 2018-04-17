@@ -30,6 +30,13 @@ class User(db.Model):
     password = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(255), unique=True, nullable=False)
     boats = db.Column(db.String(255))
+    category = db.Column(db.String(64), nullable=False)
+    address = db.Column(db.Text, nullable=False)
+    phone = db.Column(db.String(255), nullable=False)
+    firstname = db.Column(db.String(255), nullable=False)
+    lastname = db.Column(db.String(255), nullable=False)
+    status = db.Column(db.String(255))
+    createdAt = db.Column(db.DateTime)
 
     def __repr__(self):
         return '<User %r>' % self.username
@@ -40,7 +47,7 @@ class User(db.Model):
             'username': self.username,
             'password': self.password,
             'email': self.email,
-            'boats': self.boats
+            'boats': json.loads(self.boats)
         }
 
 
@@ -128,7 +135,8 @@ def login():
             'Could not authenticate bla.', 401,
             {'WWW-Authenticate': f'{app.config["JWT_AUTH_TYPE"]}'
                                  ' realm="CAPEL login required"'})
-
+    if user is None:
+        return jsonify(error='Wrong credentials.'), 401
     # Valid password
     if (user and not hmac.compare_digest(
             user.password, make_digest(request.json['password']))):
@@ -155,21 +163,26 @@ def postUsers(reqUser):
         return jsonify(error='Invalid JSON.')
 
     try:
+        if not user.get('username', None):
+            user['username'] = user.get('email')
         validation = users_validate_required(user)
         if validation['errors']:
-            return jsonify(errors=validation['errors']), 400
+            return jsonify(error={'name':'invalid_model', 'errors':validation['errors']}), 400
 
         boats = user.get('boats', None)
         if (boats and
                 (not isinstance(boats, list) or not validate_boats(boats))):
-            return jsonify(error='Invalid JSON.')
+            return jsonify(error={'name':'invalid_model', 'errors':[{'name': 'invalid_format', key: 'boats'}]})
 
         try:
             user['boats'] = json.dumps(boats)
         except TypeError:
             return jsonify(error='Invalid JSON.')
 
+        user['status'] = 'draft'
         user['password'] = make_digest(user['password'])
+        user['status'] = 'draft'
+        user['createdAt'] = datetime.datetime.utcnow()
         user = User(**user)
 
     except Exception as e:
@@ -186,18 +199,19 @@ def postUsers(reqUser):
         err_type, err_value, tb = sys.exc_info()
         app.logger.warn(''.join(format_exception_only(err_type, err_value)))
         errorOrig = str(e.orig)
+        error = errorOrig
         if errorOrig.find('violates unique constraint') > -1:
             m = re.search(r'DETAIL:  Key \((.*)\)=\(', errorOrig)
             error = {'name': 'value_exists', 'key': m.group(1)}
         if errorOrig.find('violates not-null constraint') > -1:
             error = {'name': 'missing_attribute', 'key': str(errorOrig.split('violates not-null constraint')[0].split('column')[1]).strip().replace('"', '')}
-        return jsonify(error), 400
+        return jsonify(error={'name':'invalid_model', 'errors':[error]}), 400
 
     return jsonify(user.toJSON())
 
 
 @app.route('/api/users', methods=['GET'])
-@authenticate
+@authenticateOrNot
 def getUsers(reqUser):
     users = User.query.all()
     return jsonify([user.toJSON() for user in users])
@@ -224,6 +238,9 @@ def users_validate_required(user):
         errors.append({'name': 'invalid_format', 'key': 'password', 'message': f"Password length must be >= {app.config['VALID_PWD_MIN_LEN']}"})
     if not re.match(VALID_EMAIL_REGEX, user['email'], re.I):
         errors.append({'name': 'invalid_format', 'key': 'email'})
+    boatValidation = validate_boats(user.get('boats', []))
+    if boatValidation['errors']:
+        errors.extend(boatValidation['errors'])
     if len(errors) >= 0:
         #app.logger.warn({errors: errors})
         return {'errors': errors}
@@ -237,9 +254,15 @@ def users_validate_required(user):
 
 
 def validate_boats(boats):
-    for boat in boats:
-        if (boat in (None, '') or
-            boat.get('name') in (None, '') or
-                boat.get('matriculation') in (None, '')):
-            return False
-    return True
+    errors = []
+    for i, boat in enumerate(boats):
+        if boat in (None, ''):
+            errors.append({'name': 'invalid_format', 'key': f'boat[{i}]'})
+            continue
+        if boat.get('name') in (None, ''):
+            errors.append({'name': 'invalid_format', 'key': f'boat[{i}].name'})
+        if boat.get('matriculation') in (None, ''):
+            errors.append({'name': 'invalid_format', 'key': f'boat[{i}].matriculation'})
+    if len(errors) >= 0:
+        return {'errors': errors}
+    return true
