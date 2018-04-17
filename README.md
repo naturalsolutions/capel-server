@@ -16,7 +16,7 @@ CREATE DATABASE capel;
 mkdir capel-venv
 cd capel-venv
 sudo /usr/bin/pip3 install virtualenv
-virtualenv .
+virtualenv -p python3 .
 . ./capel-venv/bin/activate
 pip install psycopg2-binary Flask flask_sqlalchemy flask_cors pyjwt
 ```
@@ -26,12 +26,6 @@ pip install psycopg2-binary Flask flask_sqlalchemy flask_cors pyjwt
 git clone https://github.com/NaturalSolutions/capel-server.git
 ```
 
-### Initialize database schema
-```py
-# from python3 prompt inside project directory
-from app import db
-db.create_all()
-```
 
 ## Configure
 Create and edit app.conf
