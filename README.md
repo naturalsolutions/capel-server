@@ -32,7 +32,7 @@ from app import db
 db.create_all()
 ```
 
-## Configure settings
+## Configure
 Create and edit app.conf
 ```py
 # sample conf
@@ -48,7 +48,7 @@ VALID_PWD_MIN_LEN = 6
 VALID_EMAIL_REGEX = r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
 ```
 
-## Run server
+## Run
 
 ```sh
 cd capel-server
