@@ -40,7 +40,8 @@ JWTSECRET = b'SECRET_ENCRYPTION_KEY'
 JWT_AUTH_TYPE = 'Bearer'
 JWT_ID_TK_EXP = timedelta(seconds=30)
 VALID_PWD_MIN_LEN = 6
-VALID_EMAIL_REGEX = r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
+SENDGRID_API_KEY = 'SENDGRID_API_KEY'
+
 ```
 
 ## Run
@@ -49,6 +50,7 @@ VALID_EMAIL_REGEX = r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
 cd capel-server
 source ../capel-venv/bin/activate
 export FLASK_APP=app.py
+# export APP_DEBUG=true
 # export CAPEL=/path/to/special_capel_conf.py
 flask run
 ```

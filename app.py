@@ -22,6 +22,7 @@ if os.environ.get('CAPEL_CONF', None):
     app.config.from_envvar('CAPEL_CONF')
 db = SQLAlchemy(app)
 
+VALID_EMAIL_REGEX = r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -94,8 +95,8 @@ def authenticateOrNot(f):
 
         except jwt.ExpiredSignatureError:
             return jsonify(error='Token Expired.'), 401
-        except Exception:
-            return jsonify(error='Could not authenticate.'), 401
+        """ except Exception:
+            return jsonify(error='Could not authenticate.'), 401 """
 
         return f(user, *args, **kwargs)
     return decorated_function
@@ -150,12 +151,13 @@ def postUsers(reqUser):
     # Signup/Register
     try:
         user = request.get_json()
-    except Flask.JSONBadRequest:
+    except:
         return jsonify(error='Invalid JSON.')
 
     try:
-        if not users_validate_required(user):
-            return jsonify(error='Empty or malformed required field.'), 400
+        validation = users_validate_required(user)
+        if validation['errors']:
+            return jsonify(errors=validation['errors']), 400
 
         boats = user.get('boats', None)
         if (boats and
@@ -170,7 +172,9 @@ def postUsers(reqUser):
         user['password'] = make_digest(user['password'])
         user = User(**user)
 
-    except Exception:
+    except Exception as e:
+        err_type, err_value, tb = sys.exc_info()
+        app.logger.warn(''.join(format_exception_only(err_type, err_value)))
         return jsonify(error='Empty or malformed required field.'), 400
 
     try:
@@ -181,7 +185,13 @@ def postUsers(reqUser):
         # FIXME: #lowerprio, https://www.pivotaltracker.com/story/show/156689324/comments/188344433  # noqa
         err_type, err_value, tb = sys.exc_info()
         app.logger.warn(''.join(format_exception_only(err_type, err_value)))
-        return jsonify(str(e.orig)), 400
+        errorOrig = str(e.orig)
+        if errorOrig.find('violates unique constraint') > -1:
+            m = re.search(r'DETAIL:  Key \((.*)\)=\(', errorOrig)
+            error = {'name': 'value_exists', 'key': m.group(1)}
+        if errorOrig.find('violates not-null constraint') > -1:
+            error = {'name': 'missing_attribute', 'key': str(errorOrig.split('violates not-null constraint')[0].split('column')[1]).strip().replace('"', '')}
+        return jsonify(error), 400
 
     return jsonify(user.toJSON())
 
@@ -209,12 +219,21 @@ def generate_id_token(key):
 
 
 def users_validate_required(user):
-    return (user.get('password') not in (None, '') and
+    errors = []
+    if len(user['password']) < app.config['VALID_PWD_MIN_LEN']:
+        errors.append({'name': 'invalid_format', 'key': 'password', 'message': f"Password length must be >= {app.config['VALID_PWD_MIN_LEN']}"})
+    if not re.match(VALID_EMAIL_REGEX, user['email'], re.I):
+        errors.append({'name': 'invalid_format', 'key': 'email'})
+    if len(errors) >= 0:
+        #app.logger.warn({errors: errors})
+        return {'errors': errors}
+    return true
+    """ return (user.get('password') not in (None, '') and
             len(user['password']) >= app.config['VALID_PWD_MIN_LEN'] and
             user.get('username') not in (None, '') and
             user.get('email') not in (None, '') and
             re.match(
-                app.config['VALID_EMAIL_REGEX'], user['email'], re.I))
+                app.config['VALID_EMAIL_REGEX'], user['email'], re.I)) """
 
 
 def validate_boats(boats):
