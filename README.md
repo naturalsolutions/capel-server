@@ -1,9 +1,10 @@
 # capel-server
 
+## Setup
 
-## Install database
+### Install database
 
-### Linux
+#### Linux
 ```sh
 sudo apt install postgresql postgresql-contrib libpq-dev
 ```
@@ -20,12 +21,12 @@ virtualenv .
 pip install psycopg2-binary Flask flask_sqlalchemy flask_cors pyjwt
 ```
 
-## Clone repository
+### Clone repository
 ```sh
 git clone https://github.com/NaturalSolutions/capel-server.git
 ```
 
-## Initialize database schema
+### Initialize database schema
 ```py
 # from python3 prompt inside project directory
 from app import db
