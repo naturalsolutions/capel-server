@@ -253,6 +253,12 @@ def users_validate_required(user):
     if not re.match(VALID_EMAIL_REGEX, user['email'], re.I):
         errors.append({'name': 'invalid_format', 'key': 'email'})
 
+    if not user.get('lastname', None):
+        errors.append({'name': 'invalid_format', 'key': 'lastname'})
+
+    if not user.get('firstname', None):
+        errors.append({'name': 'invalid_format', 'key': 'firstname'})
+
     if (not user.get('category', None) or
             user.get('category', None) not in ('particulier', 'structure')):
         errors.append({'name': 'invalid_format', 'key': 'category'})
