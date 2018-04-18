@@ -88,25 +88,24 @@ def authenticateOrNot(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         user = None
+        token = request.headers.get('Authorization')
+
+        if token is None:
+            return f(None, *args, **kwargs)
+
+        token = token.split(' ', 1)
+
         try:
-            token = request.headers.get('Authorization')
-
-            if token is None:
-                return f(None, *args, **kwargs)
-
-            token = token.split(' ', 1)
-
             payload = jwt.decode(
                 token, key=app.config['JWTSECRET'], algorithm='HS256')
-
-            user = User.query.filter_by(id=payload['id']).first()
-            if user is None:
-                return jsonify(error='Could not authenticate.'), 403
-
         except jwt.ExpiredSignatureError:
             return jsonify(error='Token Expired.'), 401
-        """ except Exception:
-            return jsonify(error='Could not authenticate.'), 401 """
+        except Exception:
+            return jsonify(error='Could not authenticate.'), 401
+
+        user = User.query.filter_by(id=payload['id']).first()
+        if user is None:
+            return jsonify(error='Could not authenticate.'), 403
 
         return f(user, *args, **kwargs)
     return decorated_function
