@@ -186,7 +186,6 @@ def postUsers(reqUser):
         except TypeError:
             return jsonify(error='Invalid JSON.')
 
-        user['status'] = 'draft'
         user['password'] = make_digest(user['password'])
         user['status'] = 'draft'
         user['createdAt'] = datetime.datetime.utcnow()
@@ -208,12 +207,12 @@ def postUsers(reqUser):
         error = err_orig
 
         if err_orig.find('violates unique constraint') > -1:
-            m = re.search(r'DETAIL:  Key \((.*)\)=\( already exists', err_orig)
-            error = {'name': 'value_exists', 'key': m.group(1)}
+            error = {'name': 'value_exists',
+                     'key': unique_constraint_key(err_orig)}
 
         elif err_orig.find('violates not-null constraint') > -1:
             error = {'name': 'missing_attribute',
-                     'key': not_null_constraint_violation_get_key(err_orig)}
+                     'key': not_null_constraint_key(err_orig)}
 
         return jsonify(error={'name': 'invalid_model', 'errors': [error]}), 400
 
@@ -245,23 +244,21 @@ def generate_id_token(key):
 def users_validate_required(user):
     errors = []
 
+    if (not user.get('category', None) or
+            user.get('category', None) not in ('particulier', 'structure')):
+        errors.append({'name': 'invalid_format', 'key': 'category'})
+
     if len(user['password']) < app.config['VALID_PWD_MIN_LEN']:
         errors.append({'name': 'invalid_format', 'key': 'password',
-                       'message': "Password length must be >= " +
+                       'message': 'Password length must be >= ' +
                                   app.config['VALID_PWD_MIN_LEN']})
 
     if not re.match(VALID_EMAIL_REGEX, user['email'], re.I):
         errors.append({'name': 'invalid_format', 'key': 'email'})
 
-    if not user.get('lastname', None):
-        errors.append({'name': 'invalid_format', 'key': 'lastname'})
-
-    if not user.get('firstname', None):
-        errors.append({'name': 'invalid_format', 'key': 'firstname'})
-
-    if (not user.get('category', None) or
-            user.get('category', None) not in ('particulier', 'structure')):
-        errors.append({'name': 'invalid_format', 'key': 'category'})
+    for attr in ('lastname', 'firstname', 'address', 'phone'):
+        if not user.get(attr, None):
+            errors.append({'name': 'invalid_format', 'key': attr})
 
     boat_validation = validate_boats(user.get('boats', []))
     if boat_validation['errors']:
@@ -269,6 +266,7 @@ def users_validate_required(user):
 
     if len(errors) >= 0:
         return {'errors': errors}
+
     return True
 
 
@@ -292,11 +290,11 @@ def validate_boats(boats):
     return True
 
 
-def not_null_constraint_violation_get_key(error):
+def not_null_constraint_key(error):
     return error.split('violates not-null constraint')[0] \
                 .split('column')[1].strip().replace('"', '')
 
 
-def violates_unique_constraint(error):
+def unique_constraint_key(error):
     m = re.search(DUPLICATE_KEY_ERROR_REGEX, error)
     return m.group('duplicate_key')
