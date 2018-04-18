@@ -63,21 +63,24 @@ def authenticate(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         user = None
-        try:
-            auth_type, token = request.headers.get('Authorization') \
-                                              .split(' ', 1)
+        auth_header = request.headers.get('Authorization')
+        if auth_header not in (None, ''):
+            try:
+                auth_type, token = auth_header.split(' ', 1)
 
-            if token is None or auth_type != app.config['JWT_AUTH_TYPE']:
-                return jsonify(error='Invalid token.'), 401
+                if token is None or auth_type != app.config['JWT_AUTH_TYPE']:
+                    return jsonify(error='Invalid token.'), 401
 
-            payload = jwt.decode(
-                token, key=app.config['JWTSECRET'], algorithm='HS256')
-
-            user = User.query.filter_by(id=payload['id']).first()
-            if user is None:
+                payload = jwt.decode(
+                    token, key=app.config['JWTSECRET'], algorithm='HS256')
+            except jwt.ExpiredSignatureError:
+                return jsonify(error='Token Expired.'), 401
+            except Exception:
                 return jsonify(error='Could not authenticate.'), 401
 
-        except Exception:
+            user = User.query.filter_by(id=payload['id']).first()
+
+        if user is None:
             return jsonify(error='Could not authenticate.'), 401
 
         return f(user, *args, **kwargs)
@@ -88,26 +91,29 @@ def authenticateOrNot(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         user = None
-        token = request.headers.get('Authorization')
+        auth_header = request.headers.get('Authorization')
+        if auth_header not in (None, ''):
+            try:
+                auth_type, token = auth_header.split(' ', 1)
+                if token is None or auth_type != app.config['JWT_AUTH_TYPE']:
+                    return jsonify(error='Invalid token.'), 401
+                app.logger.debug(token)
+                token = token.split(' ', 1)
 
-        if token is None:
-            return f(None, *args, **kwargs)
+                payload = jwt.decode(
+                    token, key=app.config['JWTSECRET'], algorithm='HS256')
+            except jwt.ExpiredSignatureError:
+                return jsonify(error='Token Expired.'), 401
+            except Exception:
+                return jsonify(error='Could not authenticate.'), 401
 
-        token = token.split(' ', 1)
+            user = User.query.filter_by(id=payload['id']).first()
+            if user is None:
+                return jsonify(error='Could not authenticate.'), 403
+            else:
+                return f(user, *args, **kwargs)
 
-        try:
-            payload = jwt.decode(
-                token, key=app.config['JWTSECRET'], algorithm='HS256')
-        except jwt.ExpiredSignatureError:
-            return jsonify(error='Token Expired.'), 401
-        except Exception:
-            return jsonify(error='Could not authenticate.'), 401
-
-        user = User.query.filter_by(id=payload['id']).first()
-        if user is None:
-            return jsonify(error='Could not authenticate.'), 403
-
-        return f(user, *args, **kwargs)
+        return f(None, *args, **kwargs)
     return decorated_function
 
 
