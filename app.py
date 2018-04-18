@@ -110,10 +110,8 @@ def authenticateOrNot(f):
             user = User.query.filter_by(id=payload['id']).first()
             if user is None:
                 return jsonify(error='Could not authenticate.'), 403
-            else:
-                return f(user, *args, **kwargs)
 
-        return f(None, *args, **kwargs)
+        return f(user, *args, **kwargs)
     return decorated_function
 
 
