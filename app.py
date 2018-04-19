@@ -25,6 +25,8 @@ if os.environ.get('CAPEL_CONF', None):
 db = SQLAlchemy(app)
 
 VALID_EMAIL_REGEX = r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
+DUPLICATE_KEY_ERROR_REGEX = r'duplicate key value violates unique constraint \"[a-z_]+_key\"\nDETAIL:\s+Key \((?P<duplicate_key>.*)\)=\(.*\) already exists.'  # noqa
+
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -69,20 +71,24 @@ def authenticate(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         user = None
-        try:
-            auth_type, token = request.headers.get('Authorization').split(' ', 1)  # noqa
+        auth_header = request.headers.get('Authorization')
+        if auth_header not in (None, ''):
+            try:
+                auth_type, token = auth_header.split(' ', 1)
 
-            if token is None or auth_type != app.config['JWT_AUTH_TYPE']:
-                return jsonify(error='Invalid token.'), 401
+                if token is None or auth_type != app.config['JWT_AUTH_TYPE']:
+                    return jsonify(error='Invalid token.'), 401
 
-            payload = jwt.decode(
-                token, key=app.config['JWTSECRET'], algorithm='HS256')
-
-            user = User.query.filter_by(id=payload['id']).first()
-            if user is None:
+                payload = jwt.decode(
+                    token, key=app.config['JWTSECRET'], algorithm='HS256')
+            except jwt.ExpiredSignatureError:
+                return jsonify(error='Token Expired.'), 401
+            except Exception:
                 return jsonify(error='Could not authenticate.'), 401
 
-        except Exception:
+            user = User.query.filter_by(id=payload['id']).first()
+
+        if user is None:
             return jsonify(error='Could not authenticate.'), 401
 
         return f(user, *args, **kwargs)
@@ -198,7 +204,7 @@ def postUsers(reqUser):
     # Signup/Register
     try:
         user = request.get_json()
-    except:
+    except Exception:
         return jsonify(error='Invalid JSON.')
 
     try:
@@ -206,19 +212,22 @@ def postUsers(reqUser):
             user['username'] = user.get('email')
         validation = users_validate_required(user)
         if validation['errors']:
-            return jsonify(error={'name':'invalid_model', 'errors':validation['errors']}), 400
+            return jsonify(error={'name': 'invalid_model',
+                                  'errors': validation['errors']}), 400
 
         boats = user.get('boats', None)
         if (boats and
                 (not isinstance(boats, list) or not validate_boats(boats))):
-            return jsonify(error={'name':'invalid_model', 'errors':[{'name': 'invalid_format', key: 'boats'}]})
+            return jsonify(
+                error={'name': 'invalid_model',
+                       'errors': [{'name': 'invalid_format', 'key': 'boats'}]}
+            ), 400
 
         try:
             user['boats'] = json.dumps(boats)
         except TypeError:
             return jsonify(error='Invalid JSON.')
 
-        user['status'] = 'draft'
         user['password'] = make_digest(user['password'])
         user['status'] = 'draft'
         user['createdAt'] = datetime.datetime.utcnow()
@@ -234,17 +243,20 @@ def postUsers(reqUser):
         db.session.commit()
     except (IntegrityError, Exception) as e:
         db.session.rollback()
-        # FIXME: #lowerprio, https://www.pivotaltracker.com/story/show/156689324/comments/188344433  # noqa
         err_type, err_value, tb = sys.exc_info()
         app.logger.warn(''.join(format_exception_only(err_type, err_value)))
-        errorOrig = str(e.orig)
-        error = errorOrig
-        if errorOrig.find('violates unique constraint') > -1:
-            m = re.search(r'DETAIL:  Key \((.*)\)=\(', errorOrig)
-            error = {'name': 'value_exists', 'key': m.group(1)}
-        if errorOrig.find('violates not-null constraint') > -1:
-            error = {'name': 'missing_attribute', 'key': str(errorOrig.split('violates not-null constraint')[0].split('column')[1]).strip().replace('"', '')}
-        return jsonify(error={'name':'invalid_model', 'errors':[error]}), 400
+        err_orig = str(e.orig)
+        error = err_orig
+
+        if err_orig.find('violates unique constraint') > -1:
+            error = {'name': 'value_exists',
+                     'key': unique_constraint_key(err_orig)}
+
+        elif err_orig.find('violates not-null constraint') > -1:
+            error = {'name': 'missing_attribute',
+                     'key': not_null_constraint_key(err_orig)}
+
+        return jsonify(error={'name': 'invalid_model', 'errors': [error]}), 400
 
     return jsonify(user.toJSON())
 
@@ -272,35 +284,58 @@ def generate_token(id, duration, secret):
 
 def users_validate_required(user):
     errors = []
+
+    if (not user.get('category', None) or
+            user.get('category', None) not in ('particulier', 'structure')):
+        errors.append({'name': 'invalid_format', 'key': 'category'})
+
     if len(user['password']) < app.config['VALID_PWD_MIN_LEN']:
-        errors.append({'name': 'invalid_format', 'key': 'password', 'message': f"Password length must be >= {app.config['VALID_PWD_MIN_LEN']}"})
+        errors.append({'name': 'invalid_format', 'key': 'password',
+                       'message': 'Password length must be >= ' +
+                                  app.config['VALID_PWD_MIN_LEN']})
+
     if not re.match(VALID_EMAIL_REGEX, user['email'], re.I):
         errors.append({'name': 'invalid_format', 'key': 'email'})
-    boatValidation = validate_boats(user.get('boats', []))
-    if boatValidation['errors']:
-        errors.extend(boatValidation['errors'])
+
+    for attr in ('lastname', 'firstname', 'address', 'phone'):
+        if not user.get(attr, None):
+            errors.append({'name': 'invalid_format', 'key': attr})
+
+    boat_validation = validate_boats(user.get('boats', []))
+    if boat_validation['errors']:
+        errors.extend(boat_validation['errors'])
+
     if len(errors) >= 0:
-        #app.logger.warn({errors: errors})
         return {'errors': errors}
-    return true
-    """ return (user.get('password') not in (None, '') and
-            len(user['password']) >= app.config['VALID_PWD_MIN_LEN'] and
-            user.get('username') not in (None, '') and
-            user.get('email') not in (None, '') and
-            re.match(
-                app.config['VALID_EMAIL_REGEX'], user['email'], re.I)) """
+
+    return True
 
 
 def validate_boats(boats):
     errors = []
+
     for i, boat in enumerate(boats):
         if boat in (None, ''):
             errors.append({'name': 'invalid_format', 'key': f'boat[{i}]'})
             continue
+
         if boat.get('name') in (None, ''):
             errors.append({'name': 'invalid_format', 'key': f'boat[{i}].name'})
+
         if boat.get('matriculation') in (None, ''):
-            errors.append({'name': 'invalid_format', 'key': f'boat[{i}].matriculation'})
+            errors.append({'name': 'invalid_format',
+                           'key': f'boat[{i}].matriculation'})
+
     if len(errors) >= 0:
         return {'errors': errors}
-    return true
+    return True
+
+
+def not_null_constraint_key(error):
+    return error.split('violates not-null constraint')[0] \
+                .split('column')[1].strip().replace('"', '')
+
+
+def unique_constraint_key(error):
+    m = re.search(DUPLICATE_KEY_ERROR_REGEX, error)
+    return m.group('duplicate_key')
