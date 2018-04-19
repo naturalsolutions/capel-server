@@ -6,14 +6,16 @@ import datetime
 import re
 from traceback import format_exception_only
 from functools import wraps
-from flask import (Flask, jsonify, request, make_response)
+from flask import (Flask, jsonify, request, make_response, redirect)
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from flask_cors import CORS
 import jwt
 import hmac
 import json
-
+import sendgrid
+from sendgrid.helpers.mail import *
+from datetime import timedelta
 
 app = Flask(__name__)
 CORS(app)
@@ -47,9 +49,15 @@ class User(db.Model):
         return {
             'id': self.id,
             'username': self.username,
-            'password': self.password,
             'email': self.email,
-            'boats': json.loads(self.boats)
+            'boats': json.loads(self.boats),
+            'category': self.category,
+            'address': self.address,
+            'phone': self.phone,
+            'firstname': self.firstname,
+            'lastname': self.lastname,
+            'status': self.status,
+            'createdAt': self.createdAt.utcnow()
         }
 
 
@@ -86,30 +94,27 @@ def authenticate(f):
         return f(user, *args, **kwargs)
     return decorated_function
 
-
 def authenticateOrNot(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        if request.headers.get('Authorization') is None:
+            return f(None, *args, **kwargs)
         user = None
-        auth_header = request.headers.get('Authorization')
-        if auth_header not in (None, ''):
-            try:
-                auth_type, token = auth_header.split(' ', 1)
-                if token is None or auth_type != app.config['JWT_AUTH_TYPE']:
-                    return jsonify(error='Invalid token.'), 401
-                app.logger.debug(token)
-                token = token.split(' ', 1)
+        try:
+            auth_type, token = request.headers.get('Authorization').split(' ', 1)  # noqa
 
-                payload = jwt.decode(
-                    token, key=app.config['JWTSECRET'], algorithm='HS256')
-            except jwt.ExpiredSignatureError:
-                return jsonify(error='Token Expired.'), 401
-            except Exception:
-                return jsonify(error='Could not authenticate.'), 401
+            if token is None or auth_type != app.config['JWT_AUTH_TYPE']:
+                return jsonify(error='Invalid token.'), 401
+
+            payload = jwt.decode(
+                token, key=app.config['JWTSECRET'], algorithm='HS256')
 
             user = User.query.filter_by(id=payload['id']).first()
             if user is None:
-                return jsonify(error='Could not authenticate.'), 403
+                return jsonify(error='Could not authenticate.'), 401
+
+        except Exception:
+            return jsonify(error='Could not authenticate.'), 401
 
         return f(user, *args, **kwargs)
     return decorated_function
@@ -119,6 +124,23 @@ def authenticateOrNot(f):
 def hello():
     return 'hello portcros-server !'
 
+@app.route('/emailconfirm/<emailtoken>')
+def emailconfirm(emailtoken):
+    if emailtoken is None:
+        return jsonify(code=401), 401
+    
+    payload = jwt.decode(emailtoken, key=app.config['JWTSECRET'] + b'_emailconfirm', algorithm='HS256')
+    user = User.query.filter_by(id=payload['id']).first()
+
+    if user is None:
+        return jsonify(error='Could not authenticate.'), 403
+    
+    user.status = 'enabled'
+    db.session.commit()
+
+    token = generate_id_token(user.id)
+
+    return redirect('http://localhost:4200/?flash_message=email_confirm_success&token={token}'.format(token=token.decode('utf-8')), code=302)
 
 @app.route('/api/users/login', methods=['POST'])
 def login():
@@ -128,25 +150,31 @@ def login():
     if (request.json is None or
         request.json.get('password') in (None, '') or
             request.json.get('username') in (None, '')):
-        return make_response(
-            'Could not authenticate.', 401,
-            {'WWW-Authenticate': f'{app.config["JWT_AUTH_TYPE"]}'
-                                 ' realm="CAPEL login required"'})
+        return make_response('Could not authenticate.', 401)
 
     # Registered user
     try:
         user = User.query.filter_by(username=request.json['username']).first()
     except Exception as e:
         return make_response(
-            'Could not authenticate bla.', 401,
-            {'WWW-Authenticate': f'{app.config["JWT_AUTH_TYPE"]}'
-                                 ' realm="CAPEL login required"'})
+            'Could not authenticate bla.', 401)
     if user is None:
         return jsonify(error='Wrong credentials.'), 401
     # Valid password
     if (user and not hmac.compare_digest(
             user.password, make_digest(request.json['password']))):
         return jsonify(error='Wrong credentials.'), 401
+
+    if user and user.status == 'draft':
+        emailToken = generate_token(user.id, timedelta(seconds=60*60*24), app.config['JWTSECRET'] + b'_emailconfirm')
+        sg = sendgrid.SendGridAPIClient(apikey=app.config['SENDGRID_API_KEY'])
+        from_email = Email('no-reply@natural-solutions.eu')
+        to_email = Email(user.email)
+        subject = "Valider votre compte"
+        content = Content("text/html", 'Bonjour, <br /><a href="http://127.0.0.1:5000/emailconfirm/{token}">Valider votre email</a>'.format(token=emailToken.decode('utf-8')))
+        mail = Mail(from_email, subject, to_email, content)
+        sg.client.mail.send.post(request_body=mail.get())
+        return jsonify(error='user_draft'), 403
 
     token = generate_id_token(user.id)
     return jsonify(token=token.decode('utf-8'), profile=user.toJSON())
@@ -158,9 +186,20 @@ def getMe(reqUser):
     reqUser = reqUser.toJSON()
     return jsonify(reqUser)
 
+@app.route('/api/users/me', methods=['PATCH'])
+@authenticate
+def patchMe(reqUser):
+    userPatch = request.get_json()
+
+    User.query.filter_by(id=reqUser.id).update(userPatch)
+
+    db.session.commit()
+
+    user = User.query.filter_by(id=reqUser.id).first()
+
+    return jsonify(user.toJSON())
 
 @app.route('/api/users', methods=['POST'])
-@authenticateOrNot
 def postUsers(reqUser):
     # Signup/Register
     try:
@@ -227,7 +266,7 @@ def postUsers(reqUser):
 def getUsers(reqUser):
     users = User.query.all()
     return jsonify([user.toJSON() for user in users])
-
+ 
 
 def make_digest(msg):
     return hmac.new(
@@ -236,13 +275,12 @@ def make_digest(msg):
         digestmod='sha256').hexdigest()
 
 
-def generate_id_token(key):
-    utc_now = datetime.datetime.utcnow()
-    return jwt.encode({
-        'id': key,
-        'exp': utc_now + app.config['JWT_ID_TK_EXP']},
-        app.config['JWTSECRET'], algorithm='HS256')
+def generate_id_token(id):
+    return generate_token(id, app.config['JWT_ID_TK_EXP'], app.config['JWTSECRET'])
 
+def generate_token(id, duration, secret):
+    utc_now = datetime.datetime.utcnow()
+    return jwt.encode({'id': id, 'exp': utc_now + duration}, secret, algorithm='HS256')
 
 def users_validate_required(user):
     errors = []
