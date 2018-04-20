@@ -6,7 +6,7 @@ import datetime
 import re
 from traceback import format_exception_only
 from functools import wraps
-from flask import (Flask, jsonify, request, make_response)
+from flask import (Flask, jsonify, request, make_response, Response)
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from flask_cors import CORS
@@ -227,6 +227,41 @@ def postUsers(reqUser):
 def getUsers(reqUser):
     users = User.query.all()
     return jsonify([user.toJSON() for user in users])
+
+
+@app.route('/api/users/<username>/permit.pdf', methods=['GET'])
+@authenticate
+def getPermit(reqUser, username=None):
+    from pdfgen import DATA_DIR
+    os.makedirs(DATA_DIR, exist_ok=True)
+    response = None
+    user = User.query.filter_by(username=username).first_or_404()
+    name = '_'.join([user.firstname, user.lastname])
+    if user is not None:
+        f = f'{DATA_DIR}/permit_{name}.pdf'
+        # app.logger.debug('pdf_file', f)
+        if not os.path.isfile(f):
+            from pdfgen import Diver, Permit
+            diver = Diver(
+                user.lastname,
+                user.firstname,
+                user.email,
+                user.phone)
+            boat = None
+            permit = Permit(diver, boat)
+            permit.save()
+
+        try:
+            with open(f, 'rb') as pdf:  # noqa
+                response = Response(pdf.read())
+                response.mimetype = 'application/pdf'
+                response.headers['Content-Disposition'] = (
+                    'attachment; filename={}'.format(os.path.basename(f)))
+                return response
+        except Exception as e:
+            err_type, err_value, tb = sys.exc_info()
+            app.logger.warn(''.join(format_exception_only(err_type, err_value)))  # noqa
+            return '500 error', 500
 
 
 def make_digest(msg):
