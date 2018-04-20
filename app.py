@@ -232,13 +232,14 @@ def getUsers(reqUser):
 @app.route('/api/users/<id>/permit.pdf', methods=['GET'])
 @authenticate
 def getPermit(reqUser, id=None):
-    from pdfgen import DATA_DIR
-    os.makedirs(DATA_DIR, exist_ok=True)
+
+    os.makedirs(app.config['PERMITS_DIR'], exist_ok=True)  # IDEA: per user ?
+
     response = None
-    user = User.query.filter_by(id=id).first_or_404()
-    name = '_'.join([user.firstname, user.lastname])
+    user = User.query.filter(User.id == id, User.status != 'draft').first_or_404()  # noqa
     if user is not None:
-        f = f'{DATA_DIR}/permit_{name}.pdf'
+        name = '_'.join([user.firstname, user.lastname])
+        f = f'{app.config["PERMITS_DIR"]}/permit_{name}.pdf'
         # app.logger.debug('pdf_file', f)
         if not os.path.isfile(f):
             from pdfgen import Applicant, Permit
@@ -247,8 +248,12 @@ def getPermit(reqUser, id=None):
                 user.firstname,
                 user.email,
                 user.phone)
-            boat = None
-            permit = Permit(applicant, boat)
+            boat = None  # FIXME: determine boat
+            permit = Permit(applicant,
+                            boat,
+                            # site,  # TODO: determine site
+                            template=app.config['PERMIT_TEMPLATE'],
+                            data_dir=app.config['PERMITS_DIR'])
             permit.save()
 
         try:

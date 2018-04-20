@@ -5,9 +5,6 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 
-DATA_DIR = 'permits'
-TEMPLATE = 'assets/reglement_2017_de_plongee_sous_marine_dans_les_coeurs_marins_du_parc_national.pdf'  # noqa
-
 
 class Applicant(object):
     def __init__(self, lastname, firstname, email, phone, ):
@@ -23,8 +20,15 @@ class Boat(object):
 
 
 class Permit(object):
-    def __init__(self, diver, boat, site=['Parc national de Port-Cros']):
-        self.diver = diver
+    def __init__(self,
+                 applicant,
+                 boat,
+                 site=['Parc national de Port-Cros'],
+                 template='assets/reglement_2017_de_plongee_sous_marine_dans_les_coeurs_marins_du_parc_national.pdf',  # noqa
+                 data_dir='permits'):
+        self.data_dir = data_dir
+        self.template = template
+        self.applicant = applicant
         self.boat = boat
         self.site = site
 
@@ -46,15 +50,16 @@ class Permit(object):
         textobject.setLeading(leading)
         textobject.setTextOrigin(x, y)
 
-        for attr, value in self.diver.__dict__.items():
+        for attr, value in self.applicant.__dict__.items():
             if (not attr.startswith('__') and
-                    not callable(getattr(self.diver, attr))):
+                    not callable(getattr(self.applicant, attr))):
                 textobject.textLine(value)
+                print(textobject.getX(), textobject.getY())
 
         c.drawText(textobject)
         c.save()
 
-        template = PdfFileReader(open(TEMPLATE, 'rb'))  # noqa
+        template = PdfFileReader(open(self.template, 'rb'))
 
         user_data = PdfFileReader(outputStream)
         outputStream.seek(0)
@@ -67,13 +72,5 @@ class Permit(object):
         page.mergePage(user_data.getPage(0))
         merged.addPage(page)
 
-        with open(f'{DATA_DIR}/permit_{self.diver.name}.pdf', 'wb') as pdf_output:  # noqa
+        with open(f'{self.data_dir}/permit_{self.applicant.name}.pdf', 'wb') as pdf_output:  # noqa
             merged.write(pdf_output)
-
-
-if __name__ == '__main__':
-
-    diver = Applicant('plongeur', 'un', 'unplongeur@awesomedivers.dev', '0609080706')  # noqa
-    boat = Boat('La marie-salope', '69-is-a-number')
-    permit = Permit(diver, boat)
-    permit.save()
