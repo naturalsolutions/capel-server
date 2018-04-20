@@ -6,7 +6,7 @@ import datetime
 import re
 from traceback import format_exception_only
 from functools import wraps
-from flask import (Flask, jsonify, request, make_response, redirect)
+from flask import (Flask, jsonify, request, make_response, redirect, Response)
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from flask_cors import CORS
@@ -130,19 +130,19 @@ def hello():
 def emailconfirm(emailtoken):
     if emailtoken is None:
         return jsonify(code=401), 401
-    
-    payload = jwt.decode(emailtoken, key=app.config['JWTSECRET'] + b'_emailconfirm', algorithm='HS256')
+
+    payload = jwt.decode(emailtoken, key=app.config['JWTSECRET'] + b'_emailconfirm', algorithm='HS256')  # noqa
     user = User.query.filter_by(id=payload['id']).first()
 
     if user is None:
         return jsonify(error=payload), 403
-    
+
     user.status = 'enabled'
     db.session.commit()
 
     token = generate_id_token(user.id).decode('utf-8')
 
-    return redirect('{webappUrl}/?flash_message=email_confirm_success&token={token}'.format(webappUrl=app.config['WEBAPP_URL'],token=token), code=302)
+    return redirect('{webappUrl}/?flash_message=email_confirm_success&token={token}'.format(webappUrl=app.config['WEBAPP_URL'], token=token), code=302)  # noqa
 
 
 @app.route('/api/users/login', methods=['POST'])
@@ -169,8 +169,8 @@ def login():
         return jsonify(error='Wrong credentials.'), 401
 
     if user and user.status == 'draft':
-        emailToken = generate_token(user.id, timedelta(seconds=60*60*24), app.config['JWTSECRET'] + b'_emailconfirm').decode('utf-8')
-        emailBody = 'Bonjour, <br /><a href="{serverUrl}/emailconfirm/{token}">Valider votre email</a>'.format(serverUrl=app.config['SERVER_URL'],token=emailToken)
+        emailToken = generate_token(user.id, timedelta(seconds=60 * 60 * 24), app.config['JWTSECRET'] + b'_emailconfirm').decode('utf-8')  # noqa
+        emailBody = 'Bonjour, <br /><a href="{serverUrl}/emailconfirm/{token}">Valider votre email</a>'.format(serverUrl=app.config['SERVER_URL'], token=emailToken)  # noqa
         sg = sendgrid.SendGridAPIClient(apikey=app.config['SENDGRID_API_KEY'])
         from_email = Email('no-reply@natural-solutions.eu')
         to_email = Email(user.email)
@@ -281,7 +281,46 @@ def postUsers():
 def getUsers(reqUser):
     users = User.query.all()
     return jsonify([user.toJSON() for user in users])
- 
+
+
+@app.route('/api/users/<id>/permit.pdf', methods=['GET'])
+@authenticate
+def getPermit(reqUser, id=None):
+
+    os.makedirs(app.config['PERMITS_DIR'], exist_ok=True)  # IDEA: per user ?
+
+    response = None
+    user = User.query.filter_by(id=id).first_or_404()  # noqa
+    if user is not None:
+        f = f'{app.config["PERMITS_DIR"]}/permit_{id}.pdf'
+        # app.logger.debug('pdf_file', f)
+        if not os.path.isfile(f):
+            from pdfgen import Applicant, Permit
+            applicant = Applicant(
+                user.lastname,
+                user.firstname,
+                user.email,
+                user.phone)
+            boat = None  # FIXME: determine boat
+            permit = Permit(
+                applicant, boat,  # site,  # TODO: determine site
+                template=app.config['PERMIT_TEMPLATE'],
+                save_path='/'.join([app.config['PERMITS_DIR'], f'permit_{user.id}.pdf']))  # noqa
+            # app.logger.debug('f{self.save_path}')
+            permit.save()
+
+        try:
+            with open(f, 'rb') as pdf:  # noqa
+                response = Response(pdf.read())
+                response.mimetype = 'application/pdf'
+                response.headers['Content-Disposition'] = (
+                    'attachment; filename={}'.format(os.path.basename(f)))
+                return response
+        except Exception as e:
+            err_type, err_value, tb = sys.exc_info()
+            app.logger.warn(''.join(format_exception_only(err_type, err_value)))  # noqa
+            return '500 error', 500
+
 
 def make_digest(msg):
     return hmac.new(
@@ -291,12 +330,12 @@ def make_digest(msg):
 
 
 def generate_id_token(id):
-    return generate_token(id, app.config['JWT_ID_TK_EXP'], app.config['JWTSECRET'])
+    return generate_token(id, app.config['JWT_ID_TK_EXP'], app.config['JWTSECRET'])  # noqa
 
 
 def generate_token(id, duration, secret):
     utc_now = datetime.datetime.utcnow()
-    return jwt.encode({'id': id, 'exp': utc_now + duration}, secret, algorithm='HS256')
+    return jwt.encode({'id': id, 'exp': utc_now + duration}, secret, algorithm='HS256')  # noqa
 
 
 def users_validate_required(user):
@@ -340,7 +379,7 @@ def validate_boats(boats):
             errors.append({'name': 'invalid_format', 'key': boat[i].name})
 
         if boat.get('matriculation') in (None, ''):
-            errors.append({'name': 'invalid_format', 'key': boat[i].matriculation})
+            errors.append({'name': 'invalid_format', 'key': boat[i].matriculation})  # noqa
 
     if len(errors) >= 0:
         return {'errors': errors}
