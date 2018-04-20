@@ -236,10 +236,9 @@ def getPermit(reqUser, id=None):
     os.makedirs(app.config['PERMITS_DIR'], exist_ok=True)  # IDEA: per user ?
 
     response = None
-    user = User.query.filter(User.id == id, User.status != 'draft').first_or_404()  # noqa
+    user = User.query.filter_by(id=id).first_or_404()  # noqa
     if user is not None:
-        name = '_'.join([user.firstname, user.lastname])
-        f = f'{app.config["PERMITS_DIR"]}/permit_{name}.pdf'
+        f = f'{app.config["PERMITS_DIR"]}/permit_{id}.pdf'
         # app.logger.debug('pdf_file', f)
         if not os.path.isfile(f):
             from pdfgen import Applicant, Permit
@@ -249,11 +248,11 @@ def getPermit(reqUser, id=None):
                 user.email,
                 user.phone)
             boat = None  # FIXME: determine boat
-            permit = Permit(applicant,
-                            boat,
-                            # site,  # TODO: determine site
-                            template=app.config['PERMIT_TEMPLATE'],
-                            data_dir=app.config['PERMITS_DIR'])
+            permit = Permit(
+                applicant, boat,  # site,  # TODO: determine site
+                template=app.config['PERMIT_TEMPLATE'],
+                save_path='/'.join([app.config['PERMITS_DIR'], f'permit_{user.id}.pdf']))  # noqa
+            # app.logger.debug('f{self.save_path}')
             permit.save()
 
         try:
