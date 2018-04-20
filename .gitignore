@@ -104,5 +104,4 @@ ENV/
 credentials.py
 __init__.py
 app_conf.py
-assets/
 permits/

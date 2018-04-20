@@ -123,7 +123,7 @@ def authenticateOrNot(f):
 
 @app.route("/")
 def hello():
-    return 'hello portcros-server !'
+    return 'hello capel-server !'
 
 
 @app.route('/emailconfirm/<emailtoken>')
@@ -142,7 +142,7 @@ def emailconfirm(emailtoken):
 
     token = generate_id_token(user.id).decode('utf-8')
 
-    return redirect('{webappUrl}/?flash_message=email_confirm_success&token={token}'.format(webappUrl=app.config['WEBAPP_URL'], token=token), code=302)  # noqa
+    return redirect('{webappUrl}#/?flash_message=email_confirm_success&token={token}'.format(webappUrl=app.config['WEBAPP_URL'], token=token), code=302)  # noqa
 
 
 @app.route('/api/users/login', methods=['POST'])
@@ -284,28 +284,27 @@ def getUsers(reqUser):
 
 
 @app.route('/api/users/<id>/permit.pdf', methods=['GET'])
-@authenticate
-def getPermit(reqUser, id=None):
+#@authenticate
+def getPermit(id=None):
 
     os.makedirs(app.config['PERMITS_DIR'], exist_ok=True)  # IDEA: per user ?
 
     response = None
     user = User.query.filter_by(id=id).first_or_404()  # noqa
     if user is not None:
-        f = f'{app.config["PERMITS_DIR"]}/permit_{id}.pdf'
-        # app.logger.debug('pdf_file', f)
+        f = app.config["PERMITS_DIR"] + '/permit_' + id + '.pdf'
+        #app.logger.debug('pdf_file', f)
         if not os.path.isfile(f):
             from pdfgen import Applicant, Permit
             applicant = Applicant(
-                user.lastname,
-                user.firstname,
-                user.email,
-                user.phone)
+                user.firstname + ' ' + user.lastname,
+                user.phone,
+                user.email)
             boat = None  # FIXME: determine boat
             permit = Permit(
                 applicant, boat,  # site,  # TODO: determine site
-                template=app.config['PERMIT_TEMPLATE'],
-                save_path='/'.join([app.config['PERMITS_DIR'], f'permit_{user.id}.pdf']))  # noqa
+                template='assets/reglement_2017.pdf',
+                save_path='/'.join([app.config['PERMITS_DIR'], 'permit_' + str(user.id) + '.pdf']))  # noqa
             # app.logger.debug('f{self.save_path}')
             permit.save()
 

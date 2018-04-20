@@ -7,11 +7,10 @@ from reportlab.lib.units import mm
 
 
 class Applicant(object):
-    def __init__(self, lastname, firstname, email, phone):
-        self.lastname = lastname
-        self.firstname = firstname
-        self.email = email
+    def __init__(self, fullname, phone, email):
+        self.fullname = fullname
         self.phone = phone
+        self.email = email
 
 
 class Boat(object):
@@ -51,11 +50,9 @@ class Permit(object):
         textobject.setLeading(leading)
         textobject.setTextOrigin(x, y)
 
-        for attr, value in self.applicant.__dict__.items():
-            if (not attr.startswith('__') and
-                    not callable(getattr(self.applicant, attr))):
-                textobject.textLine(value)
-                print(textobject.getX(), textobject.getY())
+        for value in ['fullname', 'phone', 'email']:
+            textobject.textLine(getattr(self.applicant, value))
+            print(textobject.getX(), textobject.getY())
 
         c.drawText(textobject)
         c.save()
