@@ -7,10 +7,11 @@ from reportlab.lib.units import mm
 
 
 class Applicant(object):
-    def __init__(self, lastname, firstname, email, phone, ):
-        self.name = f'{firstname}_{lastname}'
-        self.phone = phone
+    def __init__(self, lastname, firstname, email, phone):
+        self.lastname = lastname
+        self.firstname = firstname
         self.email = email
+        self.phone = phone
 
 
 class Boat(object):
@@ -25,12 +26,12 @@ class Permit(object):
                  boat,
                  site=['Parc national de Port-Cros'],
                  template='assets/reglement_2017_de_plongee_sous_marine_dans_les_coeurs_marins_du_parc_national.pdf',  # noqa
-                 data_dir='permits'):
-        self.data_dir = data_dir
-        self.template = template
+                 save_path='/dev/null'):
         self.applicant = applicant
         self.boat = boat
         self.site = site
+        self.template = template
+        self.save_path = save_path
 
     def save(self, ):
         x = 55 * mm
@@ -72,5 +73,5 @@ class Permit(object):
         page.mergePage(user_data.getPage(0))
         merged.addPage(page)
 
-        with open(f'{self.data_dir}/permit_{self.applicant.name}.pdf', 'wb') as pdf_output:  # noqa
+        with open(self.save_path, 'wb') as pdf_output:  # noqa
             merged.write(pdf_output)
