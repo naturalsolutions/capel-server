@@ -94,6 +94,7 @@ def authenticate(f):
         return f(user, *args, **kwargs)
     return decorated_function
 
+
 def authenticateOrNot(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -124,6 +125,7 @@ def authenticateOrNot(f):
 def hello():
     return 'hello portcros-server !'
 
+
 @app.route('/emailconfirm/<emailtoken>')
 def emailconfirm(emailtoken):
     if emailtoken is None:
@@ -133,14 +135,15 @@ def emailconfirm(emailtoken):
     user = User.query.filter_by(id=payload['id']).first()
 
     if user is None:
-        return jsonify(error='Could not authenticate.'), 403
+        return jsonify(error=payload), 403
     
     user.status = 'enabled'
     db.session.commit()
 
-    token = generate_id_token(user.id)
+    token = generate_id_token(user.id).decode('utf-8')
 
-    return redirect('http://localhost:4200/?flash_message=email_confirm_success&token={token}'.format(token=token.decode('utf-8')), code=302)
+    return redirect('{webappUrl}/?flash_message=email_confirm_success&token={token}'.format(webappUrl=app.config['WEBAPP_URL'],token=token), code=302)
+
 
 @app.route('/api/users/login', methods=['POST'])
 def login():
@@ -166,12 +169,13 @@ def login():
         return jsonify(error='Wrong credentials.'), 401
 
     if user and user.status == 'draft':
-        emailToken = generate_token(user.id, timedelta(seconds=60*60*24), app.config['JWTSECRET'] + b'_emailconfirm')
+        emailToken = generate_token(user.id, timedelta(seconds=60*60*24), app.config['JWTSECRET'] + b'_emailconfirm').decode('utf-8')
+        emailBody = 'Bonjour, <br /><a href="{serverUrl}/emailconfirm/{token}">Valider votre email</a>'.format(serverUrl=app.config['SERVER_URL'],token=emailToken)
         sg = sendgrid.SendGridAPIClient(apikey=app.config['SENDGRID_API_KEY'])
         from_email = Email('no-reply@natural-solutions.eu')
         to_email = Email(user.email)
         subject = "Valider votre compte"
-        content = Content("text/html", 'Bonjour, <br /><a href="http://127.0.0.1:5000/emailconfirm/{token}">Valider votre email</a>'.format(token=emailToken.decode('utf-8')))
+        content = Content("text/html", emailBody)
         mail = Mail(from_email, subject, to_email, content)
         sg.client.mail.send.post(request_body=mail.get())
         return jsonify(error='user_draft'), 403
@@ -186,6 +190,7 @@ def getMe(reqUser):
     reqUser = reqUser.toJSON()
     return jsonify(reqUser)
 
+
 @app.route('/api/users/me', methods=['PATCH'])
 @authenticate
 def patchMe(reqUser):
@@ -199,8 +204,9 @@ def patchMe(reqUser):
 
     return jsonify(user.toJSON())
 
+
 @app.route('/api/users', methods=['POST'])
-def postUsers(reqUser):
+def postUsers():
     # Signup/Register
     try:
         user = request.get_json()
@@ -258,6 +264,15 @@ def postUsers(reqUser):
 
         return jsonify(error={'name': 'invalid_model', 'errors': [error]}), 400
 
+    emailToken = generate_token(user.id, timedelta(seconds=60*60*24), app.config['JWTSECRET'] + b'_emailconfirm').decode('utf-8')
+    sg = sendgrid.SendGridAPIClient(apikey=app.config['SENDGRID_API_KEY'])
+    from_email = Email('no-reply@natural-solutions.eu')
+    to_email = Email(user.email)
+    subject = "Bienvenue sur CAPEL"
+    content = Content("text/html", 'Bonjour {firstname}, <br /><a href="{serverUrl}/emailconfirm/{token}">Cliquez-ici pour valider votre email</a>'.format(serverUrl=app.config['SERVER_URL'],firstname=user.firstname, token=emailToken))
+    mail = Mail(from_email, subject, to_email, content)
+    sg.client.mail.send.post(request_body=mail.get())
+
     return jsonify(user.toJSON())
 
 
@@ -278,9 +293,11 @@ def make_digest(msg):
 def generate_id_token(id):
     return generate_token(id, app.config['JWT_ID_TK_EXP'], app.config['JWTSECRET'])
 
+
 def generate_token(id, duration, secret):
     utc_now = datetime.datetime.utcnow()
     return jwt.encode({'id': id, 'exp': utc_now + duration}, secret, algorithm='HS256')
+
 
 def users_validate_required(user):
     errors = []
@@ -316,15 +333,14 @@ def validate_boats(boats):
 
     for i, boat in enumerate(boats):
         if boat in (None, ''):
-            errors.append({'name': 'invalid_format', 'key': f'boat[{i}]'})
+            errors.append({'name': 'invalid_format', 'key': boat[i].name})
             continue
 
         if boat.get('name') in (None, ''):
-            errors.append({'name': 'invalid_format', 'key': f'boat[{i}].name'})
+            errors.append({'name': 'invalid_format', 'key': boat[i].name})
 
         if boat.get('matriculation') in (None, ''):
-            errors.append({'name': 'invalid_format',
-                           'key': f'boat[{i}].matriculation'})
+            errors.append({'name': 'invalid_format', 'key': boat[i].matriculation})
 
     if len(errors) >= 0:
         return {'errors': errors}
