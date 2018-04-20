@@ -229,26 +229,26 @@ def getUsers(reqUser):
     return jsonify([user.toJSON() for user in users])
 
 
-@app.route('/api/users/<username>/permit.pdf', methods=['GET'])
+@app.route('/api/users/<id>/permit.pdf', methods=['GET'])
 @authenticate
-def getPermit(reqUser, username=None):
+def getPermit(reqUser, id=None):
     from pdfgen import DATA_DIR
     os.makedirs(DATA_DIR, exist_ok=True)
     response = None
-    user = User.query.filter_by(username=username).first_or_404()
+    user = User.query.filter_by(id=id).first_or_404()
     name = '_'.join([user.firstname, user.lastname])
     if user is not None:
         f = f'{DATA_DIR}/permit_{name}.pdf'
         # app.logger.debug('pdf_file', f)
         if not os.path.isfile(f):
-            from pdfgen import Diver, Permit
-            diver = Diver(
+            from pdfgen import Applicant, Permit
+            applicant = Applicant(
                 user.lastname,
                 user.firstname,
                 user.email,
                 user.phone)
             boat = None
-            permit = Permit(diver, boat)
+            permit = Permit(applicant, boat)
             permit.save()
 
         try:
