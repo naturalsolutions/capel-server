@@ -9,7 +9,7 @@ DATA_DIR = 'permits'
 TEMPLATE = 'assets/reglement_2017_de_plongee_sous_marine_dans_les_coeurs_marins_du_parc_national.pdf'  # noqa
 
 
-class Diver(object):
+class Applicant(object):
     def __init__(self, lastname, firstname, email, phone, ):
         self.name = f'{firstname}_{lastname}'
         self.phone = phone
@@ -28,8 +28,12 @@ class Permit(object):
         self.boat = boat
         self.site = site
 
-    def save(self):
+    def save(self, ):
+        x = 55 * mm
+        y = 43 * mm
         font_size = 12
+        leading = font_size + 5
+
         outputStream = io.BytesIO()
         c = canvas.Canvas(outputStream, pagesize=A4)
         c.setAuthor('CAPEL')
@@ -39,10 +43,7 @@ class Permit(object):
         c.setFillColorRGB(0, 0, 0)
         c.setFont('Helvetica', font_size)
         textobject = c.beginText()
-        leading = font_size + 5
         textobject.setLeading(leading)
-        x = 55 * mm
-        y = 43 * mm
         textobject.setTextOrigin(x, y)
 
         for attr, value in self.diver.__dict__.items():
@@ -52,12 +53,13 @@ class Permit(object):
 
         c.drawText(textobject)
         c.save()
-        outputStream.seek(0)
 
         template = PdfFileReader(open(TEMPLATE, 'rb'))  # noqa
+
         user_data = PdfFileReader(outputStream)
+        outputStream.seek(0)
+
         merged = PdfFileWriter()
-        # for i, page in enumerate(template.pages - 1):
         page = template.getPage(0)
         merged.addPage(page)
 
@@ -71,7 +73,7 @@ class Permit(object):
 
 if __name__ == '__main__':
 
-    diver = Diver('plongeur', 'un', 'unplongeur@awesomedivers.dev', '0609080706')  # noqa
+    diver = Applicant('plongeur', 'un', 'unplongeur@awesomedivers.dev', '0609080706')  # noqa
     boat = Boat('La marie-salope', '69-is-a-number')
     permit = Permit(diver, boat)
     permit.save()
