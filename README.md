@@ -18,7 +18,7 @@ cd capel-venv
 sudo /usr/bin/pip3 install virtualenv
 virtualenv -p python3 .
 . ./capel-venv/bin/activate
-pip install psycopg2-binary Flask flask_sqlalchemy flask_cors pyjwt
+pip install psycopg2-binary Flask flask_sqlalchemy flask_cors pyjwt sendgrid reportlab PyPDF2
 ```
 
 ### Clone repository
@@ -43,6 +43,7 @@ VALID_PWD_MIN_LEN = 6
 SENDGRID_API_KEY = 'SENDGRID_API_KEY'
 WEBAPP_URL = 'WEBAPP_URL'
 SERVER_URL = 'SERVER_URL'
+PERMITS_DIR = 'permits'
 
 ```
 
