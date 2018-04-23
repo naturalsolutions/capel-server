@@ -3,14 +3,11 @@ import io
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import mm
 
 
 class Applicant(object):
-    def __init__(self, fullname, phone, email):
-        self.fullname = fullname
-        self.phone = phone
-        self.email = email
+    def __init__(self, properties):
+        self.properties = properties
 
 
 class Boat(object):
@@ -20,53 +17,68 @@ class Boat(object):
 
 
 class Permit(object):
-    def __init__(self,
-                 applicant,
-                 boat,
-                 site=['Parc national de Port-Cros'],
-                 template='assets/reglement_2017_de_plongee_sous_marine_dans_les_coeurs_marins_du_parc_national.pdf',  # noqa
-                 save_path='/dev/null'):
+    def __init__(
+            self,
+            applicant,
+            boat=None,
+            site=['Parc national de Port-Cros'],
+            author='CAPEL',
+            title='Autorisation de ...',
+            subject='Plonger au coeur du parc',
+            template='assets/reglement_2017.pdf',
+            save_path='/dev/null'):
         self.applicant = applicant
         self.boat = boat
         self.site = site
+        self.author = author
+        self.title = title
+        self.subject = subject
         self.template = template
         self.save_path = save_path
 
-    def save(self, ):
-        x = 55 * mm
-        y = 43 * mm
-        font_size = 12
-        leading = font_size + 5
-
+    def save(self):
         outputStream = io.BytesIO()
         c = canvas.Canvas(outputStream, pagesize=A4)
-        c.setAuthor('CAPEL')
-        c.setTitle('Autorisation de ...')
-        c.setSubject('Plonger au coeur du parc')
+        c.setAuthor(self.author)
+        c.setTitle(self.title)
+        c.setSubject(self.subject)
+
+        font_size = 12
         c.setStrokeColorRGB(0, 0, 0)
         c.setFillColorRGB(0, 0, 0)
         c.setFont('Helvetica', font_size)
         textobject = c.beginText()
-        textobject.setLeading(leading)
-        textobject.setTextOrigin(x, y)
 
-        for value in ['fullname', 'phone', 'email']:
-            textobject.textLine(getattr(self.applicant, value))
-            print(textobject.getX(), textobject.getY())
+        for prop in self.applicant.properties:
+            value, x, y = prop
+            textobject.setTextOrigin(x, y)
+            textobject.textLine(value)
+
+        if self.boat not in (None, 'null'):
+            value, x, y = self.boat
+            if isinstance(value, list):
+                value = ', '.join([boat for boat in value])
+
+            textobject.setTextOrigin(x, y)
+            textobject.textLine(value)
 
         c.drawText(textobject)
         c.save()
 
-        template = PdfFileReader(open(self.template, 'rb'))
+        template = PdfFileReader(self.template, 'rb')
+        n = template.getNumPages()
 
         user_data = PdfFileReader(outputStream)
         outputStream.seek(0)
 
         merged = PdfFileWriter()
-        page = template.getPage(0)
-        merged.addPage(page)
 
-        page = template.getPage(1)
+        for i in range(0, n - 2):
+            print('getNumPages:', i)
+            page = template.getPage(i)
+            merged.addPage(page)
+
+        page = template.getPage(n - 1)
         page.mergePage(user_data.getPage(0))
         merged.addPage(page)
 
