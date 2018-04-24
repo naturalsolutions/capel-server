@@ -102,6 +102,6 @@ ENV/
 
 .vscodedb
 credentials.py
-__init__.py
 app_conf.py
 permits/
+migrations/__pycache__

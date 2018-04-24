@@ -9,6 +9,7 @@ from functools import wraps
 from flask import (Flask, jsonify, request, make_response, redirect, Response)
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
+from flask_migrate import Migrate
 from flask_cors import CORS
 import jwt
 import hmac
@@ -23,6 +24,7 @@ app.config.from_object('app_conf')
 if os.environ.get('CAPEL_CONF', None):
     app.config.from_envvar('CAPEL_CONF')
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 VALID_EMAIL_REGEX = r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
 DUPLICATE_KEY_ERROR_REGEX = r'DETAIL:\s+Key \((?P<duplicate_key>.*)\)=\(.*\) already exists.'  # noqa
@@ -63,7 +65,6 @@ class User(db.Model):
 
 @app.before_first_request
 def init_db():
-    # Initialize database schema
     db.create_all()
 
 
