@@ -84,6 +84,7 @@ pip freeze > requirements.txt
 heroku local   # run app locally, interrupt with CTRL-C
 heroku create  # create "heroku" git remote
 echo 'python-3.6.4' > runtime.txt
+<!-- heroku addons:create sendgrid:starter -->
 heroku addons:create heroku-postgresql:hobby-dev  # install Heroku Postgres db free plan
 heroku config  # Copy/paste DATABASE_URL value to update app_conf.py
 git commit -am 'Update SQLALCHEMY_DATABASE_URI in app_conf.py with value from heroku config DATABASE_URL.'
