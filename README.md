@@ -76,7 +76,13 @@ curl https://cli-assets.heroku.com/install-standalone.sh | sh
 heroku login
 pip install gunicorn
 echo 'web: gunicorn app:app' > Procfile
+pip freeze > requirements.txt
+# commit changes
+```
+
+### Push and run
 heroku local   # run app locally, interrupt with CTRL-C
 heroku create  # create "heroku" git remote
-git push heroku <git branch name>
+echo 'python-3.6.4' > runtime.txt
+git push heroku <branchname>:master
 ```
