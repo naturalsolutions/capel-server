@@ -2,11 +2,13 @@
 
 ## Setup
 
-### Install database
+### Install database and packages depencies
 
 #### Linux
 ```sh
-sudo apt install postgresql postgresql-contrib libpq-dev
+sudo apt install postgresql postgresql-contrib libpq-dev git-all
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+python3 get-pip.py
 ```
 ```sql
 sudo -u postgres psql postgres
@@ -30,6 +32,10 @@ git clone https://github.com/NaturalSolutions/capel-server.git
 
 ## Configure
 Create and edit app.conf
+```sh
+cd capel-server
+```
+
 ```py
 # sample conf
 from credentials import dbcredentials as dba
@@ -60,4 +66,17 @@ flask db init     # on first run
 flask db migrate  # on subsequent runs with an updated db schema
 flask db upgrade
 flask run
+```
+
+## Heroku deployment
+
+### Linux
+```sh
+curl https://cli-assets.heroku.com/install-standalone.sh | sh
+heroku login
+pip install gunicorn
+echo 'web: gunicorn app:app' > Procfile
+heroku local   # run app locally, interrupt with CTRL-C
+heroku create  # create "heroku" git remote
+git push heroku <git branch name>
 ```
