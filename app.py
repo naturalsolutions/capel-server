@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import os
-import sys
+import sys, traceback
 import datetime
 import re
 from traceback import format_exception_only
@@ -11,60 +11,22 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from flask_cors import CORS
 import jwt
-import hmac
 import json
+import hmac
 import sendgrid
 from sendgrid.helpers.mail import *
 from datetime import timedelta
-
 app = Flask(__name__)
 CORS(app)
 app.config.from_object('app_conf')
+
+
 if os.environ.get('CAPEL_CONF', None):
     app.config.from_envvar('CAPEL_CONF')
 db = SQLAlchemy(app)
-
+from models import *
 VALID_EMAIL_REGEX = r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
 DUPLICATE_KEY_ERROR_REGEX = r'duplicate key value violates unique constraint \"[a-z_]+_key\"\nDETAIL:\s+Key \((?P<duplicate_key>.*)\)=\(.*\) already exists.'  # noqa
-
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), unique=True, nullable=False)
-    password = db.Column(db.String(255), nullable=False)
-    email = db.Column(db.String(255), unique=True, nullable=False)
-    boats = db.Column(db.String(255))
-    category = db.Column(db.String(64), nullable=False)
-    address = db.Column(db.Text, nullable=False)
-    phone = db.Column(db.String(255), nullable=False)
-    firstname = db.Column(db.String(255), nullable=False)
-    lastname = db.Column(db.String(255), nullable=False)
-    status = db.Column(db.String(255))
-    createdAt = db.Column(db.DateTime)
-
-    def __repr__(self):
-        return '<User %r>' % self.username
-
-    def toJSON(self):
-        return {
-            'id': self.id,
-            'username': self.username,
-            'email': self.email,
-            'boats': json.loads(self.boats),
-            'category': self.category,
-            'address': self.address,
-            'phone': self.phone,
-            'firstname': self.firstname,
-            'lastname': self.lastname,
-            'status': self.status,
-            'createdAt': self.createdAt.utcnow()
-        }
-
-
-@app.before_first_request
-def init_db():
-    # Initialize database schema
-    db.create_all()
 
 
 def authenticate(f):
@@ -190,18 +152,13 @@ def getMe(reqUser):
     reqUser = reqUser.toJSON()
     return jsonify(reqUser)
 
-
 @app.route('/api/users/me', methods=['PATCH'])
 @authenticate
 def patchMe(reqUser):
     userPatch = request.get_json()
-
     User.query.filter_by(id=reqUser.id).update(userPatch)
-
     db.session.commit()
-
     user = User.query.filter_by(id=reqUser.id).first()
-
     return jsonify(user.toJSON())
 
 
@@ -221,31 +178,46 @@ def postUsers():
             return jsonify(error={'name': 'invalid_model',
                                   'errors': validation['errors']}), 400
 
-        boats = user.get('boats', None)
+        user['password'] = make_digest(user['password'])
+        user['status'] = 'draft'
+        user['createdAt'] = datetime.datetime.utcnow()
+
+        boats = user.get('boats')
+        #user['boats'] = boats
+        for i, boat in enumerate(boats):
+          if boats[i]:
+            print(boats[i])
+
         if (boats and
                 (not isinstance(boats, list) or not validate_boats(boats))):
             return jsonify(
                 error={'name': 'invalid_model',
                        'errors': [{'name': 'invalid_format', 'key': 'boats'}]}
-            ), 400
-
-        try:
-            user['boats'] = json.dumps(boats)
-        except TypeError:
-            return jsonify(error='Invalid JSON.')
-
-        user['password'] = make_digest(user['password'])
-        user['status'] = 'draft'
-        user['createdAt'] = datetime.datetime.utcnow()
+            ), 402
+        del user['boats']
         user = User(**user)
+        boatsObjects = []
+        try:
+            for i, boat in enumerate(boats):
+                boat = Boat(**boats[i])
+                boatsObjects.append(boat)
+                user.boats.append(boat)
+
+        except (TypeError, Exception) as e:
+            traceback.print_exc()
+            return jsonify(error='Invalid JSON.'), 400
 
     except Exception as e:
         err_type, err_value, tb = sys.exc_info()
         app.logger.warn(''.join(format_exception_only(err_type, err_value)))
-        return jsonify(error='Empty or malformed required field.'), 400
+        traceback.print_exc()
+        return jsonify(error='Empty or malformed required filed user.'), 401
 
     try:
+
         db.session.add(user)
+        for i, boat in enumerate(boatsObjects):
+            db.session.add(boatsObjects[i])
         db.session.commit()
     except (IntegrityError, Exception) as e:
         db.session.rollback()
@@ -269,7 +241,7 @@ def postUsers():
     from_email = Email('no-reply@natural-solutions.eu')
     to_email = Email(user.email)
     subject = "Bienvenue sur CAPEL"
-    content = Content("text/html", 'Bonjour {firstname}, <br /><a href="{serverUrl}/emailconfirm/{token}">Cliquez-ici pour valider votre email</a>'.format(serverUrl=app.config['SERVER_URL'],firstname=user.firstname, token=emailToken))
+    content = Content("text/html",   'Bonjour {firstname}, <br /><a href="{serverUrl}/emailconfirm/{token}">Cliquez-ici pour valider votre email</a>'.format(serverUrl=app.config['SERVER_URL'],firstname=user.firstname, token=emailToken))
     mail = Mail(from_email, subject, to_email, content)
     sg.client.mail.send.post(request_body=mail.get())
 
@@ -355,10 +327,6 @@ def users_validate_required(user):
     for attr in ('lastname', 'firstname', 'address', 'phone'):
         if not user.get(attr, None):
             errors.append({'name': 'invalid_format', 'key': attr})
-
-    boat_validation = validate_boats(user.get('boats', []))
-    if boat_validation['errors']:
-        errors.extend(boat_validation['errors'])
 
     if len(errors) >= 0:
         return {'errors': errors}
