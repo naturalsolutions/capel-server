@@ -18,7 +18,7 @@ cd capel-venv
 sudo /usr/bin/pip3 install virtualenv
 virtualenv -p python3 .
 . ./capel-venv/bin/activate
-pip install psycopg2-binary Flask flask_sqlalchemy flask_cors pyjwt sendgrid reportlab PyPDF2
+pip install psycopg2-binary Flask flask_sqlalchemy flask_cors pyjwt sendgrid reportlab PyPDF2 geoalchemy2
 ```
 
 ### Clone repository
@@ -47,6 +47,13 @@ PERMITS_DIR = 'permits'
 
 ```
 
+# to resolve sendgrid problem: SSL: CERTIFICATE_VERIFY_FAILED” Error
+
+```sh
+pip install certifi
+/Applications/Python\ 3.6/Install\ Certificates.command
+```
+
 ## Run
 
 ```sh
@@ -57,3 +64,22 @@ export FLASK_APP=app.py
 # export CAPEL=/path/to/special_capel_conf.py
 flask run
 ```
+# Enable postgis extension
+
+-- Enable PostGIS (includes raster)
+CREATE EXTENSION postgis;
+-- Enable Topology
+CREATE EXTENSION postgis_topology;
+-- Enable PostGIS Advanced 3D
+-- and other geoprocessing algorithms
+-- sfcgal not available with all distributions
+CREATE EXTENSION postgis_sfcgal;
+-- fuzzy matching needed for Tiger
+CREATE EXTENSION fuzzystrmatch;
+-- rule based standardizer
+CREATE EXTENSION address_standardizer;
+-- example rule data set
+CREATE EXTENSION address_standardizer_data_us;
+-- Enable US Tiger Geocoder
+CREATE EXTENSION postgis_tiger_geocoder;
+
