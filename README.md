@@ -84,6 +84,7 @@ pip freeze > requirements.txt
 heroku local   # run app locally, interrupt with CTRL-C
 heroku create  # create "heroku" git remote
 echo 'python-3.6.4' > runtime.txt
+heroku addons:create heroku-postgresql:hobby-dev  # install Heroku Postgres db using free plan
 git push heroku <branchname>:master
 heroku ps:scale web=1  # Ensure that at least one instance of the app is running
 heroku open
