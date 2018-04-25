@@ -11,6 +11,7 @@ sudo apt install postgresql postgresql-contrib libpq-dev
 ```sql
 sudo -u postgres psql postgres
 CREATE DATABASE capel;
+\q
 ```
 ```sh
 mkdir capel-venv
@@ -18,7 +19,7 @@ cd capel-venv
 sudo /usr/bin/pip3 install virtualenv
 virtualenv -p python3 .
 . ./capel-venv/bin/activate
-pip install psycopg2-binary Flask flask_sqlalchemy flask_cors pyjwt sendgrid reportlab PyPDF2 geoalchemy2
+pip install psycopg2-binary geoalchemy2 Flask flask_sqlalchemy flask_cors pyjwt Flask-Migrate sendgrid reportlab PyPDF2
 ```
 
 ### Clone repository
@@ -62,6 +63,9 @@ source ../capel-venv/bin/activate
 export FLASK_APP=app.py
 # export APP_DEBUG=true
 # export CAPEL=/path/to/special_capel_conf.py
+flask db init     # on first run
+flask db migrate  # on subsequent runs with an updated db schema
+flask db upgrade
 flask run
 ```
 # Enable postgis extension
@@ -82,4 +86,3 @@ CREATE EXTENSION address_standardizer;
 CREATE EXTENSION address_standardizer_data_us;
 -- Enable US Tiger Geocoder
 CREATE EXTENSION postgis_tiger_geocoder;
-

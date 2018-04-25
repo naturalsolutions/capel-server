@@ -9,12 +9,13 @@ from functools import wraps
 from flask import (Flask, jsonify, request, make_response, redirect, Response)
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
+from flask_migrate import Migrate
 from flask_cors import CORS
 import jwt
 import json
 import hmac
 import sendgrid
-from sendgrid.helpers.mail import *
+from sendgrid.helpers.mail import (Email, Content, Mail)
 from datetime import timedelta
 app = Flask(__name__)
 CORS(app)
@@ -24,11 +25,57 @@ app.config.from_object('app_conf')
 if os.environ.get('CAPEL_CONF', None):
     app.config.from_envvar('CAPEL_CONF')
 db = SQLAlchemy(app)
+<<<<<<< HEAD
 from models import *
+=======
+migrate = Migrate(app, db)
+
+>>>>>>> dev
 VALID_EMAIL_REGEX = r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
-DUPLICATE_KEY_ERROR_REGEX = r'duplicate key value violates unique constraint \"[a-z_]+_key\"\nDETAIL:\s+Key \((?P<duplicate_key>.*)\)=\(.*\) already exists.'  # noqa
+DUPLICATE_KEY_ERROR_REGEX = r'DETAIL:\s+Key \((?P<duplicate_key>.*)\)=\(.*\) already exists.'  # noqa
 
 
+<<<<<<< HEAD
+=======
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(64), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    boats = db.Column(db.String(255))
+    category = db.Column(db.String(64), nullable=False)
+    address = db.Column(db.Text, nullable=False)
+    phone = db.Column(db.String(255), nullable=False)
+    firstname = db.Column(db.String(255), nullable=False)
+    lastname = db.Column(db.String(255), nullable=False)
+    status = db.Column(db.String(255))
+    createdAt = db.Column(db.DateTime)
+
+    def __repr__(self):
+        return '<User %r>' % self.username
+
+    def toJSON(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'boats': json.loads(self.boats),
+            'category': self.category,
+            'address': self.address,
+            'phone': self.phone,
+            'firstname': self.firstname,
+            'lastname': self.lastname,
+            'status': self.status,
+            'createdAt': self.createdAt.utcnow()
+        }
+
+
+@app.before_first_request
+def init_db():
+    db.create_all()
+
+
+>>>>>>> dev
 def authenticate(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -152,6 +199,7 @@ def getMe(reqUser):
     reqUser = reqUser.toJSON()
     return jsonify(reqUser)
 
+
 @app.route('/api/users/me', methods=['PATCH'])
 @authenticate
 def patchMe(reqUser):
@@ -178,30 +226,21 @@ def postUsers():
             return jsonify(error={'name': 'invalid_model',
                                   'errors': validation['errors']}), 400
 
-        user['password'] = make_digest(user['password'])
-        user['status'] = 'draft'
-        user['createdAt'] = datetime.datetime.utcnow()
-
         boats = user.get('boats')
-        #user['boats'] = boats
-        for i, boat in enumerate(boats):
-          if boats[i]:
-            print(boats[i])
-
         if (boats and
                 (not isinstance(boats, list) or not validate_boats(boats))):
             return jsonify(
                 error={'name': 'invalid_model',
                        'errors': [{'name': 'invalid_format', 'key': 'boats'}]}
             ), 402
-        del user['boats']
+
+        user['status'] = 'draft'
+        user['createdAt'] = datetime.datetime.utcnow()
+        user['password'] = make_digest(user['password'])
         user = User(**user)
-        boatsObjects = []
+
         try:
-            for i, boat in enumerate(boats):
-                boat = Boat(**boats[i])
-                boatsObjects.append(boat)
-                user.boats.append(boat)
+            user.boats = [Boat(**boat) for boat in boats]
 
         except (TypeError, Exception) as e:
             traceback.print_exc()
@@ -236,12 +275,12 @@ def postUsers():
 
         return jsonify(error={'name': 'invalid_model', 'errors': [error]}), 400
 
-    emailToken = generate_token(user.id, timedelta(seconds=60*60*24), app.config['JWTSECRET'] + b'_emailconfirm').decode('utf-8')
+    emailToken = generate_token(user.id, timedelta(seconds=60 * 60 * 24), app.config['JWTSECRET'] + b'_emailconfirm').decode('utf-8')  # noqa
     sg = sendgrid.SendGridAPIClient(apikey=app.config['SENDGRID_API_KEY'])
     from_email = Email('no-reply@natural-solutions.eu')
     to_email = Email(user.email)
     subject = "Bienvenue sur CAPEL"
-    content = Content("text/html",   'Bonjour {firstname}, <br /><a href="{serverUrl}/emailconfirm/{token}">Cliquez-ici pour valider votre email</a>'.format(serverUrl=app.config['SERVER_URL'],firstname=user.firstname, token=emailToken))
+    content = Content("text/html", 'Bonjour {firstname}, <br /><a href="{serverUrl}/emailconfirm/{token}">Cliquez-ici pour valider votre email</a>'.format(serverUrl=app.config['SERVER_URL'], firstname=user.firstname, token=emailToken))  # noqa
     mail = Mail(from_email, subject, to_email, content)
     sg.client.mail.send.post(request_body=mail.get())
 
@@ -255,33 +294,54 @@ def getUsers(reqUser):
     return jsonify([user.toJSON() for user in users])
 
 
-@app.route('/api/users/<id>/permit.pdf', methods=['GET'])
-#@authenticate
-def getPermit(id=None):
+@app.route('/api/users/<int:id>/permit.pdf', methods=['GET'])
+@authenticate
+def getPermit(reqUser, id):
 
-    os.makedirs(app.config['PERMITS_DIR'], exist_ok=True)  # IDEA: per user ?
+    os.makedirs(app.config['PERMITS_DIR'], exist_ok=True)
 
     response = None
-    user = User.query.filter_by(id=id).first_or_404()  # noqa
+    user = User.query.filter_by(id=id).first_or_404()
     if user is not None:
-        f = app.config["PERMITS_DIR"] + '/permit_' + id + '.pdf'
-        #app.logger.debug('pdf_file', f)
+        now = datetime.datetime.utcnow()
+        f = '/'.join([
+            app.config['PERMITS_DIR'],
+            '_'.join(['permit', 'capel',
+                      str(now.year), str(user.firstname),
+                      str(user.id)]) + '.pdf'])
         if not os.path.isfile(f):
             from pdfgen import Applicant, Permit
-            applicant = Applicant(
-                user.firstname + ' ' + user.lastname,
-                user.phone,
-                user.email)
-            boat = None  # FIXME: determine boat
+
+            applicant = Applicant([
+                (user.firstname + ' ' + user.lastname, 156, 122),
+                (user.phone, 135, 105),
+                (user.email, 100, 88)])
+
+            boats = user.boats
+            if boats != 'null':
+                try:
+                    boats = ([','.join([
+                        ' '.join([boat['name'], boat['matriculation']])
+                        for boat in json.loads(user.boats)])],
+                        180, 70)
+                except Exception as e:
+                    err_type, err_value, tb = sys.exc_info()
+                    app.logger.error(
+                        ''.join(format_exception_only(err_type, err_value)))
+                    return jsonify(error='500 error'), 500
+            else:
+                boats = ('Aucun', 180, 70)
+
             permit = Permit(
-                applicant, boat,  # site,  # TODO: determine site
+                applicant,
+                boat=boats,
                 template='assets/reglement_2017.pdf',
-                save_path='/'.join([app.config['PERMITS_DIR'], 'permit_' + str(user.id) + '.pdf']))  # noqa
-            # app.logger.debug('f{self.save_path}')
+                site='Parc National de Port-Cros',
+                save_path=f)
             permit.save()
 
         try:
-            with open(f, 'rb') as pdf:  # noqa
+            with open(f, 'rb') as pdf:
                 response = Response(pdf.read())
                 response.mimetype = 'application/pdf'
                 response.headers['Content-Disposition'] = (
@@ -289,7 +349,8 @@ def getPermit(id=None):
                 return response
         except Exception as e:
             err_type, err_value, tb = sys.exc_info()
-            app.logger.warn(''.join(format_exception_only(err_type, err_value)))  # noqa
+            app.logger.warn(
+                ''.join(format_exception_only(err_type, err_value)))
             return '500 error', 500
 
 
