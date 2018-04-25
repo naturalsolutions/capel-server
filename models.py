@@ -1,9 +1,34 @@
 from app import db
 from geoalchemy2 import Geometry
 
+
+# Define the Boat data model
+class Boat(db.Model):
+
+    __tablename__ = 'boats'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    matriculation = db.Column(db.Unicode(255), unique=True)  # for display purposes
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
+
+    def __repr__(self):
+        return '<Boat %r>' % self.name
+
+    def toJSON(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'matriculation': self.matriculation
+        }
+
 # Define the User data model. Make sure to add the flask_user.UserMixin !!
 class User(db.Model):
+
     __tablename__ = 'users'
+    __table_args__ = {'extend_existing': True}
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
@@ -17,10 +42,6 @@ class User(db.Model):
     createdAt = db.Column(db.DateTime)
 
     boats = db.relationship('Boat', backref='users', lazy='dynamic')
-
-    def __init__(self, **kwargs):
-        super(User, self).__init__(**kwargs)
-        # do custom initialization here
 
     def __repr__(self):
         return '<User %r>' % self.username
@@ -39,18 +60,14 @@ class User(db.Model):
             'createdAt': self.createdAt.utcnow()
         }
 
-# Define the Boat data model
-class Boat(db.Model):
-    __tablename__ = 'boats'
-    id = db.Column(db.Integer(), primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
-    matriculation = db.Column(db.Unicode(255), unique=True)  # for display purposes
-    user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
 
 
 # Define the Permit data model
 class Permit(db.Model):
+
     __tablename__ = 'permits'
+    __table_args__ = {'extend_existing': True}
+
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(50), nullable=False, unique=True)  # for @roles_accepted()
     url = db.Column(db.Unicode(255))  # for display purposes
@@ -64,13 +81,31 @@ class Permit(db.Model):
 
 # Define the TypeDive data model
 class TypeDive(db.Model):
+
     __tablename__ = 'typedives'
+    __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.Unicode(255))  # for display purposes
 
+    def __init__(self, name):
+        self.name = name
+
+    def __repr__(self):
+        return '<TypeDive %r>' % self.name
+
+    def toJSON(self):
+        return {
+            'id': self.id,
+            'name': self.name
+        }
+
+
 # Define the DiveSite data model
 class DiveSite(db.Model):
+
     __tablename__ = 'divesites'
+    __table_args__ = {'extend_existing': True}
+
     id = db.Column(db.Integer(), primary_key=True)
     referenced = db.Column(db.String)  # for display purposes
     # Relationships
@@ -78,18 +113,24 @@ class DiveSite(db.Model):
 
 # Define the Weather data model
 class Weather(db.Model):
+
     __tablename__ = 'weathers'
+    __table_args__ = {'extend_existing': True}
+
     id = db.Column(db.Integer(), primary_key=True)
-    sky_id = db.Column(db.Integer())
-    seaState_id = db.Column(db.Integer())
-    wind_id = db.Column(db.Integer())
+    sky = db.Column(db.String(255))
+    seaState = db.Column(db.String(255))
+    wind = db.Column(db.String(255))
     water_temperature = db.Column(db.Integer())
     wind_temperature = db.Column(db.Integer())
     visibility = db.Column(db.Integer())
 
 # Define the Dive data model
 class Dive(db.Model):
+
     __tablename__ = 'dives'
+    __table_args__ = {'extend_existing': True}
+
     id = db.Column(db.Integer(), primary_key=True)
     divingDate = db.Column(db.DateTime)
     startTime = db.Column(db.DateTime)
@@ -100,7 +141,10 @@ class Dive(db.Model):
 
 # Define the DiveTypeDive data model
 class DiveTypeDive(db.Model):
+
     __tablename__ = 'divetypedives'
+    __table_args__ = {'extend_existing': True}
+
     id = db.Column(db.Integer(), primary_key=True)
     divetype_id = db.Column(db.Integer(), db.ForeignKey('divesites.id', ondelete='CASCADE'))
     dive_id = db.Column(db.Integer(), db.ForeignKey('dives.id', ondelete='CASCADE'))
@@ -109,7 +153,10 @@ class DiveTypeDive(db.Model):
 
 # Define the DiveBoat data model
 class DiveBoat(db.Model):
+
     __tablename__ = 'diveboats'
+    __table_args__ = {'extend_existing': True}
+
     id = db.Column(db.Integer(), primary_key=True)
     dive_id = db.Column(db.Integer(), db.ForeignKey('dives.id', ondelete='CASCADE'))
     boat_id = db.Column(db.Integer(), db.ForeignKey('boats.id', ondelete='CASCADE'))
@@ -120,4 +167,8 @@ if __name__ == "__main__":
  # Run this file directly to create the database tables.
  print ("Creating database tables...")
  db.create_all()
+ print("Done!'")
+ print("Inserting Type Dive Data..!'")
+ #db.session.add_all([ TypeDive("Baptême"), TypeDive("Exploration"),  TypeDive("Technique"), TypeDive("Randinnée palmeée"), TypeDive("Apneée") ])
+ db.session.commit()
  print ("Done!'")

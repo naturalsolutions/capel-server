@@ -152,6 +152,25 @@ def getMe(reqUser):
     reqUser = reqUser.toJSON()
     return jsonify(reqUser)
 
+#Get Connected User Boats
+@app.route('/api/users/boats')
+@authenticate
+def getBoats(reqUser):
+    boats = reqUser.boats.all()
+    boatJsn = []
+    for boat in boats:
+        boatJsn.append(boat.toJSON())
+    return jsonify(boatJsn)
+
+#Get Type Dives
+@app.route('/api/devies/typedives')
+def getTypeDives():
+    typeDives = TypeDive.query.all()
+    typeDivesJsn = []
+    for typeDive in typeDives:
+        typeDivesJsn.append(typeDive.toJSON())
+    return jsonify(typeDivesJsn)
+
 @app.route('/api/users/me', methods=['PATCH'])
 @authenticate
 def patchMe(reqUser):
@@ -183,7 +202,7 @@ def postUsers():
         user['createdAt'] = datetime.datetime.utcnow()
 
         boats = user.get('boats')
-        #user['boats'] = boats
+        user['boats'] = boats
         for i, boat in enumerate(boats):
           if boats[i]:
             print(boats[i])
