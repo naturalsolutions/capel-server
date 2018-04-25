@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from flask_migrate import Migrate
 from flask_cors import CORS
 import jwt
-import json
+#import json
 import hmac
 import sendgrid
 from sendgrid.helpers.mail import (Email, Content, Mail)
@@ -279,7 +279,7 @@ def getPermit(reqUser, id):
                       str(now.year), str(user.firstname),
                       str(user.id)]) + '.pdf'])
         if not os.path.isfile(f):
-            from .pdfgen import Applicant, Permit
+            from pdfgen import Applicant, Permit
 
             applicant = Applicant([
                 (user.firstname + ' ' + user.lastname, 156, 122),
@@ -290,8 +290,8 @@ def getPermit(reqUser, id):
             if boats != 'null':
                 try:
                     boats = ([','.join([
-                        ' '.join([boat['name'], boat['matriculation']])
-                        for boat in json.loads(user.boats)])],
+                        ' '.join([boat.name, boat.matriculation])
+                        for boat in user.boats])],
                         180, 70)
                 except Exception as e:
                     err_type, err_value, tb = sys.exc_info()
