@@ -105,3 +105,4 @@ credentials.py
 app_conf.py
 permits/
 migrations/__pycache__
+.idea/

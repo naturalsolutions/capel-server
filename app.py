@@ -1,13 +1,13 @@
 #!/usr/bin/python3
 
 import os
-import sys, traceback
+import sys
 import datetime
 import re
 from traceback import format_exception_only
 from functools import wraps
 from flask import (Flask, jsonify, request, make_response, redirect, Response)
-from flask_sqlalchemy import SQLAlchemy
+# from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from flask_migrate import Migrate
 from flask_cors import CORS
@@ -17,65 +17,29 @@ import hmac
 import sendgrid
 from sendgrid.helpers.mail import (Email, Content, Mail)
 from datetime import timedelta
+
+
+VALID_EMAIL_REGEX = r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
+DUPLICATE_KEY_ERROR_REGEX = r'DETAIL:\s+Key \((?P<duplicate_key>.*)\)=\(.*\) already exists.'  # noqa
+WELCOME_EMAIL_SUBJECT = 'Bienvenue sur CAPEL'
+WELCOME_EMAIL_TEMPLATE = '''
+Bonjour {firstname}, <br />
+<a href="{serverUrl}/emailconfirm/{token}">
+Cliquez-ici pour valider votre email</a>
+'''
+
 app = Flask(__name__)
 CORS(app)
 app.config.from_object('app_conf')
-
-
 if os.environ.get('CAPEL_CONF', None):
     app.config.from_envvar('CAPEL_CONF')
-db = SQLAlchemy(app)
-<<<<<<< HEAD
-from models import *
-=======
+
+from models import db, User, Boat
+# db = SQLAlchemy(app)
+# db.init(app)
 migrate = Migrate(app, db)
 
->>>>>>> dev
-VALID_EMAIL_REGEX = r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
-DUPLICATE_KEY_ERROR_REGEX = r'DETAIL:\s+Key \((?P<duplicate_key>.*)\)=\(.*\) already exists.'  # noqa
 
-
-<<<<<<< HEAD
-=======
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), unique=True, nullable=False)
-    password = db.Column(db.String(255), nullable=False)
-    email = db.Column(db.String(255), unique=True, nullable=False)
-    boats = db.Column(db.String(255))
-    category = db.Column(db.String(64), nullable=False)
-    address = db.Column(db.Text, nullable=False)
-    phone = db.Column(db.String(255), nullable=False)
-    firstname = db.Column(db.String(255), nullable=False)
-    lastname = db.Column(db.String(255), nullable=False)
-    status = db.Column(db.String(255))
-    createdAt = db.Column(db.DateTime)
-
-    def __repr__(self):
-        return '<User %r>' % self.username
-
-    def toJSON(self):
-        return {
-            'id': self.id,
-            'username': self.username,
-            'email': self.email,
-            'boats': json.loads(self.boats),
-            'category': self.category,
-            'address': self.address,
-            'phone': self.phone,
-            'firstname': self.firstname,
-            'lastname': self.lastname,
-            'status': self.status,
-            'createdAt': self.createdAt.utcnow()
-        }
-
-
-@app.before_first_request
-def init_db():
-    db.create_all()
-
-
->>>>>>> dev
 def authenticate(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -226,61 +190,66 @@ def postUsers():
             return jsonify(error={'name': 'invalid_model',
                                   'errors': validation['errors']}), 400
 
-        boats = user.get('boats')
-        if (boats and
-                (not isinstance(boats, list) or not validate_boats(boats))):
-            return jsonify(
-                error={'name': 'invalid_model',
-                       'errors': [{'name': 'invalid_format', 'key': 'boats'}]}
-            ), 402
+        boats = user.get('boats', None)
+        if boats:
+            if not isinstance(boats, list) or not validate_boats(boats):
+                return jsonify(
+                    error={'name': 'invalid_model',
+                           'errors': [{'name': 'invalid_format',
+                                       'key': 'boats'}]}), 400
+
+            del user['boats']
+            boats = [Boat(**boat) for boat in boats]
 
         user['status'] = 'draft'
         user['createdAt'] = datetime.datetime.utcnow()
         user['password'] = make_digest(user['password'])
         user = User(**user)
 
-        try:
-            user.boats = [Boat(**boat) for boat in boats]
-
-        except (TypeError, Exception) as e:
-            traceback.print_exc()
-            return jsonify(error='Invalid JSON.'), 400
-
     except Exception as e:
         err_type, err_value, tb = sys.exc_info()
         app.logger.warn(''.join(format_exception_only(err_type, err_value)))
-        traceback.print_exc()
-        return jsonify(error='Empty or malformed required filed user.'), 401
+
+        if err_type == 'TypeError':
+            return jsonify(error='Invalid JSON.'), 400
+
+        return jsonify(error='Empty or malformed required filed user.'), 400
 
     try:
 
         db.session.add(user)
-        for i, boat in enumerate(boatsObjects):
-            db.session.add(boatsObjects[i])
+        db.session.add_all(boats)
         db.session.commit()
     except (IntegrityError, Exception) as e:
         db.session.rollback()
         err_type, err_value, tb = sys.exc_info()
         app.logger.warn(''.join(format_exception_only(err_type, err_value)))
         err_orig = str(e.orig)
-        error = err_orig
+        errors = []
 
         if err_orig.find('violates unique constraint') > -1:
-            error = {'name': 'value_exists',
-                     'key': unique_constraint_key(err_orig)}
+            errors.append({'name': 'value_exists',
+                          'key': unique_constraint_key(err_orig)})
 
         elif err_orig.find('violates not-null constraint') > -1:
-            error = {'name': 'missing_attribute',
-                     'key': not_null_constraint_key(err_orig)}
+            errors.append({'name': 'missing_attribute',
+                           'key': not_null_constraint_key(err_orig)})
 
-        return jsonify(error={'name': 'invalid_model', 'errors': [error]}), 400
+        return jsonify(error={'name': 'invalid_model', 'errors': errors}), 400
 
-    emailToken = generate_token(user.id, timedelta(seconds=60 * 60 * 24), app.config['JWTSECRET'] + b'_emailconfirm').decode('utf-8')  # noqa
+    emailToken = generate_token(
+        user.id,
+        timedelta(seconds=60 * 60 * 24),
+        app.config['JWTSECRET'] + b'_emailconfirm').decode('utf-8')
     sg = sendgrid.SendGridAPIClient(apikey=app.config['SENDGRID_API_KEY'])
     from_email = Email('no-reply@natural-solutions.eu')
     to_email = Email(user.email)
-    subject = "Bienvenue sur CAPEL"
-    content = Content("text/html", 'Bonjour {firstname}, <br /><a href="{serverUrl}/emailconfirm/{token}">Cliquez-ici pour valider votre email</a>'.format(serverUrl=app.config['SERVER_URL'], firstname=user.firstname, token=emailToken))  # noqa
+    subject = WELCOME_EMAIL_SUBJECT,
+    content = Content('text/html',
+                      WELCOME_EMAIL_TEMPLATE.format(
+                          firstname=user.firstname,
+                          serverUrl=app.config['SERVER_URL'],
+                          token=emailToken))
     mail = Mail(from_email, subject, to_email, content)
     sg.client.mail.send.post(request_body=mail.get())
 
@@ -310,7 +279,7 @@ def getPermit(reqUser, id):
                       str(now.year), str(user.firstname),
                       str(user.id)]) + '.pdf'])
         if not os.path.isfile(f):
-            from pdfgen import Applicant, Permit
+            from .pdfgen import Applicant, Permit
 
             applicant = Applicant([
                 (user.firstname + ' ' + user.lastname, 156, 122),
