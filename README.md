@@ -6,7 +6,7 @@
 
 #### Linux
 ```sh
-sudo apt install postgresql postgresql-contrib libpq-dev
+sudo apt install postgresql postgresql-contrib libpq-dev postgresql-9.6-postgis-scripts
 ```
 ```sql
 sudo -u postgres psql postgres
