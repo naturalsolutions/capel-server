@@ -7,12 +7,10 @@ import re
 from traceback import format_exception_only
 from functools import wraps
 from flask import (Flask, jsonify, request, make_response, redirect, Response)
-# from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from flask_migrate import Migrate
 from flask_cors import CORS
 import jwt
-#import json
 import hmac
 import sendgrid
 from sendgrid.helpers.mail import (Email, Content, Mail)
@@ -34,8 +32,7 @@ app.config.from_object('app_conf')
 if os.environ.get('CAPEL_CONF', None):
     app.config.from_envvar('CAPEL_CONF')
 
-from models import db, User, Boat
-# db = SQLAlchemy(app)
+from models import db, User, Boat  # noqa
 # db.init(app)
 migrate = Migrate(app, db)
 
@@ -198,8 +195,7 @@ def postUsers():
                            'errors': [{'name': 'invalid_format',
                                        'key': 'boats'}]}), 400
 
-            del user['boats']
-            boats = [Boat(**boat) for boat in boats]
+            user['boats'] = [Boat(**boat) for boat in boats]
 
         user['status'] = 'draft'
         user['createdAt'] = datetime.datetime.utcnow()
@@ -218,7 +214,6 @@ def postUsers():
     try:
 
         db.session.add(user)
-        db.session.add_all(boats)
         db.session.commit()
     except (IntegrityError, Exception) as e:
         db.session.rollback()
@@ -286,10 +281,11 @@ def getPermit(reqUser, id):
                 (user.phone, 135, 105),
                 (user.email, 100, 88)])
 
-            boats = user.boats
-            if boats != 'null':
+            boats = user.boats.all()
+            app.logger.debug(boats)
+            if boats is not None:
                 try:
-                    boats = ([','.join([
+                    boats = ([', '.join([
                         ' '.join([boat.name, boat.matriculation])
                         for boat in user.boats])],
                         180, 70)
