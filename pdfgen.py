@@ -13,10 +13,6 @@ class Applicant(object):
         self.email = email
 
 
-class Boat(object):
-    def __init__(self, name, matriculation):
-        self.name = name
-        self.matriculation = matriculation
 
 
 class Permit(object):

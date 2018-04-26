@@ -29,6 +29,11 @@ VALID_EMAIL_REGEX = r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
 DUPLICATE_KEY_ERROR_REGEX = r'duplicate key value violates unique constraint \"[a-z_]+_key\"\nDETAIL:\s+Key \((?P<duplicate_key>.*)\)=\(.*\) already exists.'  # noqa
 
 
+@app.before_first_request
+def init_db():
+    db.session.add_all([TypeDive("Baptême"), TypeDive("Exploration"), TypeDive("Technique"), TypeDive("Randinnée palmeée"), TypeDive("Apneée")])
+    db.session.commit()
+
 def authenticate(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):

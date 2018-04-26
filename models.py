@@ -1,28 +1,6 @@
 from app import db
 from geoalchemy2 import Geometry
 
-
-# Define the Boat data model
-class Boat(db.Model):
-
-    __tablename__ = 'boats'
-    __table_args__ = {'extend_existing': True}
-
-    id = db.Column(db.Integer(), primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
-    matriculation = db.Column(db.Unicode(255), unique=True)  # for display purposes
-    user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
-
-    def __repr__(self):
-        return '<Boat %r>' % self.name
-
-    def toJSON(self):
-        return {
-            'id': self.id,
-            'name': self.name,
-            'matriculation': self.matriculation
-        }
-
 # Define the User data model. Make sure to add the flask_user.UserMixin !!
 class User(db.Model):
 
@@ -59,6 +37,33 @@ class User(db.Model):
             'status': self.status,
             'createdAt': self.createdAt.utcnow()
         }
+
+# Define the Boat data model
+class Boat(db.Model):
+
+    __tablename__ = 'boats'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    matriculation = db.Column(db.Unicode(255), unique=True)  # for display purposes
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+    def __repr__(self):
+        return '<Boat %r>' % self.name
+
+    def __init__(self, name, matriculation):
+        self.name = name
+        self.matriculation = matriculation
+
+    def toJSON(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'matriculation': self.matriculation
+        }
+
+
 
 
 
@@ -133,8 +138,7 @@ class Dive(db.Model):
 
     id = db.Column(db.Integer(), primary_key=True)
     divingDate = db.Column(db.DateTime)
-    startTime = db.Column(db.DateTime)
-    endTime = db.Column(db.DateTime)  # for display purposes
+    times = db.Column(db.ARRAY(db.Time, dimensions=2))  # for display purposes
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
     divesite_id = db.Column(db.Integer(), db.ForeignKey('divesites.id', ondelete='CASCADE'))
     weather_id = db.Column(db.Integer(), db.ForeignKey('weathers.id', ondelete='CASCADE'))
@@ -169,6 +173,4 @@ if __name__ == "__main__":
  db.create_all()
  print("Done!'")
  print("Inserting Type Dive Data..!'")
- #db.session.add_all([ TypeDive("Baptême"), TypeDive("Exploration"),  TypeDive("Technique"), TypeDive("Randinnée palmeée"), TypeDive("Apneée") ])
- db.session.commit()
  print ("Done!'")
