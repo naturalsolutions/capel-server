@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>{{title}}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <style media="screen" type="text/css">
+      #confirm_button:hover {
+        box-shadow: 0 8px 17px 0 rgba(0, 0, 0, 0.2) !important;
+        transition: all .2s;
+      }
+    </style>
+  </head>
+  <body style="margin: 0 auto; padding: 0;">
+    <table border="0" cellpadding="0" cellspacing="0" width="600px"  align="center" style="border-collapse: separate;">
+      <tr>
+        <td>
+          <img src="{{serverUrl}}assets/welcome_email_header.png" alt="Capel, Carnet de plongée en ligne" width="100%" height="55px" style="display: block;" />
+        </td>
+      </tr>
+      <tr>
+        <td align="center" style="padding:40px;">
+          <img src="{{serverUrl}}assets/confirmation-mail.png" alt="Valider votre compte." width="40px" height="40px" style="display: block;" />
+        </td>
+      </tr>
+      <tr>
+        <td align="center" style="color:#46cf17;font-family:Arial, Helvetica, sans-serif;font-size:14px;font-weight: bold;letter-spacing: 1.1px; text-transform: capitalize;" >
+          BONJOUR {{firstname}}<br />
+        </td>
+      </tr>
+      <tr>
+        <td align="center" style="font-size:10px;color:#464945;font-family:Times New Roman, Times, serif;font-style:oblique;" >
+          <p style="padding:20px;line-height: 18px;">
+            Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td align="center">
+          <a id="confirm_button" href="{{serverUrl}}emailconfirm/{{token}}" style="background-color:#54bedd;border:1px solid #54bedd;color:#ffffff;display:inline-block;font-family:Arial, Helvetica, sans-serif;letter-spacing:1px;font-size:12px;font-weight: bold; line-height:44px;text-align:center;text-decoration:none;padding: 0 15px;-webkit-text-size-adjust:none;box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.25);border-radius:1px;">VALIDER VOTRE COMPTE</a>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
