@@ -234,7 +234,7 @@ def postUsers():
         db.session.rollback()
         err_type, err_value, tb = sys.exc_info()
         app.logger.warn(''.join(format_exception_only(err_type, err_value)))
-        err_orig = str(e.get('orig', 'register error'))
+        err_orig = str(getattr(e, 'orig', 'register error'))
         errors = []
 
         if err_orig.find('violates unique constraint') > -1:
