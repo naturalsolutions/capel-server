@@ -2,24 +2,30 @@
 
 ## Setup
 
-### Install database and packages depencies
+### Install database and packages dependancies
 
 #### Linux
 ```sh
-sudo apt install postgresql postgresql-contrib libpq-dev postgresql-9.6-postgis-scripts
+sudo apt install postgresql postgresql-contrib libpq-dev postgresql-9.6-postgis-scripts git-all
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+python3 get-pip.py
 ```
 ```sql
 sudo -u postgres psql postgres
 CREATE DATABASE capel;
+\c capel
+CREATE EXTENSION postgis;
+CREATE EXTENSION postgis_topology;
 \q
 ```
 ```sh
 mkdir capel-venv
 cd capel-venv
-sudo /usr/bin/pip3 install virtualenv
-virtualenv -p python3 .
-. ./capel-venv/bin/activate
-pip install psycopg2-binary geoalchemy2 Flask flask_sqlalchemy flask_cors pyjwt Flask-Migrate sendgrid reportlab PyPDF2
+sudo /usr/bin/pip3 install virtualenv  # contemporary version:
+virtualenv -p python3 .                # python3 -m venv capel-venv
+source ./capel-venv/bin/activate
+pip install psycopg2-binary geoalchemy2 Flask flask_sqlalchemy flask_cors pyjwt Flask-Migrate sendgrid reportlab PyPDF2 certifi
+# IOS: Applications/Python\ 3.6/Install\ Certificates.command
 ```
 
 ### Clone repository
@@ -29,15 +35,18 @@ git clone https://github.com/NaturalSolutions/capel-server.git
 
 
 ## Configure
-Create and edit app.conf
+Create/edit app.conf
 ```sh
 cd capel-server
 ```
 
 ```py
 # sample conf
-from credentials import dbcredentials as dba
 from datetime import timedelta
+try:
+  from credentials import dbcredentials as dba
+except Exception:
+  dba = 'postgres@'
 
 SQLALCHEMY_DATABASE_URI = f'postgresql://{dba}localhost/capel'
 SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -50,13 +59,6 @@ WEBAPP_URL = 'WEBAPP_URL'
 SERVER_URL = 'SERVER_URL'
 PERMITS_DIR = 'permits'
 
-```
-
-# to resolve sendgrid problem: SSL: CERTIFICATE_VERIFY_FAILED” Error
-
-```sh
-pip install certifi
-/Applications/Python\ 3.6/Install\ Certificates.command
 ```
 
 ## Run
@@ -72,21 +74,36 @@ flask db migrate  # on subsequent runs with an updated db schema
 flask db upgrade
 flask run
 ```
-# Enable postgis extension
 
--- Enable PostGIS (includes raster)
-CREATE EXTENSION postgis;
--- Enable Topology
-CREATE EXTENSION postgis_topology;
--- Enable PostGIS Advanced 3D
--- and other geoprocessing algorithms
--- sfcgal not available with all distributions
-CREATE EXTENSION postgis_sfcgal;
--- fuzzy matching needed for Tiger
-CREATE EXTENSION fuzzystrmatch;
--- rule based standardizer
-CREATE EXTENSION address_standardizer;
--- example rule data set
-CREATE EXTENSION address_standardizer_data_us;
--- Enable US Tiger Geocoder
-CREATE EXTENSION postgis_tiger_geocoder;
+## Annex: Heroku deployment
+### Linux
+```sh
+curl https://cli-assets.heroku.com/install-standalone.sh | sh
+heroku login
+pip install gunicorn
+echo 'web: gunicorn app:app' > Procfile
+echo 'release: FLASK_APP=app.py flask db upgrade' >> Procfile
+pip freeze > requirements.txt
+# commit changes
+```
+
+### MO
+```sh
+# run app locally, interrupt with CTRL-C
+heroku local   
+# create "heroku" git remote
+heroku create  
+echo 'python-3.6.4' > runtime.txt
+# install Heroku postgres free plan
+heroku addons:create heroku-postgresql:hobby-dev
+# Enable postgis extensions !
+# Copy/paste DATABASE_URL value to app_conf.py SQLALCHEMY_DATABASE_URI
+heroku config  
+git commit -am 'Update SQLALCHEMY_DATABASE_URI from "heroku config".'
+git push heroku <branchname>:master
+# Ensure that at least one instance of the app is running
+heroku ps:scale web=1  
+heroku open
+heroku logs
+heroku apps:rename capel-beta
+```
