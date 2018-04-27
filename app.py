@@ -6,7 +6,8 @@ import datetime
 import re
 from traceback import format_exception_only
 from functools import wraps
-from flask import (Flask, jsonify, request, make_response, redirect, Response)
+from flask import (Flask, jsonify, request, make_response, redirect,
+                   Response, send_from_directory)
 from sqlalchemy.exc import IntegrityError
 from flask_migrate import Migrate
 from flask_cors import CORS
@@ -89,6 +90,11 @@ def authenticateOrNot(f):
 
         return f(user, *args, **kwargs)
     return decorated_function
+
+
+@app.route('/assets/<path:path>')
+def serve_assets(path):
+    return send_from_directory('assets', path)
 
 
 @app.route("/")
