@@ -82,5 +82,5 @@ class Permit(object):
         page.mergePage(user_data.getPage(0))
         merged.addPage(page)
 
-        with open(self.save_path, 'wb') as pdf_output:  # noqa
+        with open(self.save_path, 'wb') as pdf_output:
             merged.write(pdf_output)

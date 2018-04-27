@@ -1,14 +1,19 @@
 from datetime import timedelta
+try:
+    from dba import DATABASE_URL, SENDGRID_KEY
+except Exception:
+    DATABASE_URL = f'postgresql://postgres@localhost/capel'
+    SENDGRID_KEY = 'Please fill in your sendgrid api key.'  # TODO: raise
 
-SQLALCHEMY_DATABASE_URI = 'postgres://nprxexbyoznabo:9a18f5b097e560f1bad29b559e6c4d20fff688c74cd747ff0851b28455377923@ec2-107-20-151-189.compute-1.amazonaws.com:5432/de9j10rfk0jqgi'  # noqa
+SQLALCHEMY_DATABASE_URI = DATABASE_URL
 SQLALCHEMY_TRACK_MODIFICATIONS = False
-JWTSECRET = b'abcdef'
+JWTSECRET = b'SUPER_SECRET'
 JWT_AUTH_TYPE = 'Bearer'
 JWT_ID_TK_EXP = timedelta(seconds=30)
 VALID_PWD_MIN_LEN = 6
 VALID_EMAIL_REGEX = r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
 PERMIT_TEMPLATE = 'assets/reglement_2017.pdf'
 PERMITS_DIR = 'permits'
-SENDGRID_API_KEY = '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'  # noqa
+SENDGRID_API_KEY = SENDGRID_KEY
 WEBAPP_URL = 'htt://localhost:4200'
 SERVER_URL = 'https://capel-beta.herokuapp.com/'
