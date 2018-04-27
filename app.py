@@ -142,6 +142,7 @@ def login():
             'Could not authenticate bla.', 401)
     if user is None:
         return jsonify(error='Wrong credentials.'), 401
+
     # Valid password
     if (user and not hmac.compare_digest(
             user.password, make_digest(request.json['password']))):
