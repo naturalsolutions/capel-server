@@ -2,7 +2,7 @@
 
 ## Setup
 
-### Install database
+### Install database and packages depencies
 
 #### Linux
 ```sh
@@ -30,6 +30,10 @@ git clone https://github.com/NaturalSolutions/capel-server.git
 
 ## Configure
 Create and edit app.conf
+```sh
+cd capel-server
+```
+
 ```py
 # sample conf
 from credentials import dbcredentials as dba

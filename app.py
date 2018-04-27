@@ -313,7 +313,7 @@ def getPermit(reqUser, id):
             permit = Permit(
                 applicant,
                 boat=boats,
-                template='assets/reglement_2017.pdf',
+                template=app.config['PERMIT_TEMPLATE'],
                 site='Parc National de Port-Cros',
                 save_path=f)
             permit.save()
