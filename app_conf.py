@@ -9,7 +9,7 @@ SQLALCHEMY_DATABASE_URI = DATABASE_URL
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 JWTSECRET = b'SUPER_SECRET'
 JWT_AUTH_TYPE = 'Bearer'
-JWT_ID_TK_EXP = timedelta(seconds=30)
+JWT_ID_TK_EXP = timedelta(seconds=300)
 VALID_PWD_MIN_LEN = 6
 VALID_EMAIL_REGEX = r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
 PERMIT_TEMPLATE = 'assets/reglement_2017.pdf'
