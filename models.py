@@ -21,7 +21,7 @@ class Boat(db.Model):
     name = db.Column(db.String(50), nullable=False)
     matriculation = db.Column(db.Unicode(255), unique=True)
     user_id = db.Column(
-        db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
+        db.Integer(), db.ForeignKey('users.id'))
 
     def __repr__(self):
         return '<Boat %r>' % self.name
@@ -149,8 +149,7 @@ class Dive(db.Model):
 
     id = db.Column(db.Integer(), primary_key=True)
     divingDate = db.Column(db.DateTime)
-    startTime = db.Column(db.DateTime)
-    endTime = db.Column(db.DateTime)
+    times = db.Column(db.ARRAY(db.Time, dimensions=2))
     user_id = db.Column(
         db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
     divesite_id = db.Column(
@@ -184,14 +183,3 @@ class DiveBoat(db.Model):
         db.Integer(), db.ForeignKey('dives.id', ondelete='CASCADE'))
     boat_id = db.Column(
         db.Integer(), db.ForeignKey('boats.id', ondelete='CASCADE'))
-
-
-if __name__ == "__main__":
-    # Run this file directly to create the database tables.
-    print("Creating database tables...")
-    db.create_all()
-    print("Done!'")
-    print("Inserting Type Dive Data..!'")
-    # db.session.add_all([ TypeDive("Baptême"), TypeDive("Exploration"),  TypeDive("Technique"), TypeDive("Randinnée palmeée"), TypeDive("Apneée") ])  # noqa
-    db.session.commit()
-    print("Done!'")
