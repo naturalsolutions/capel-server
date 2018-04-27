@@ -1,13 +1,15 @@
 """empty message
 
 Revision ID: d509598131ee
-Revises: 
+Revises:
 Create Date: 2018-04-27 09:33:12.041958
 
 """
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+import geoalchemy2
 
 # revision identifiers, used by Alembic.
 revision = 'd509598131ee'
