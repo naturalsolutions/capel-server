@@ -108,3 +108,4 @@ migrations/__pycache__
 .idea/
 dba.py
 .venv/
+.env
