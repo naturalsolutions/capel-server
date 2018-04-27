@@ -38,14 +38,6 @@ from models import db, User, Boat, TypeDive  # noqa
 migrate = Migrate(app, db)
 
 
-@app.before_first_request
-def init_db():
-    db.session.add_all([
-        TypeDive("Baptême"), TypeDive("Exploration"), TypeDive("Technique"),
-        TypeDive("Randinnée palmeée"), TypeDive("Apneée")])
-    db.session.commit()
-
-
 def authenticate(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
