@@ -33,9 +33,17 @@ app.config.from_object('app_conf')
 if os.environ.get('CAPEL_CONF', None):
     app.config.from_envvar('CAPEL_CONF')
 
-from models import db, User, Boat  # noqa
+from models import db, User, Boat, TypeDive  # noqa
 # db.init(app)
 migrate = Migrate(app, db)
+
+
+@app.before_first_request
+def init_db():
+    db.session.add_all([
+        TypeDive("Baptême"), TypeDive("Exploration"), TypeDive("Technique"),
+        TypeDive("Randinnée palmeée"), TypeDive("Apneée")])
+    db.session.commit()
 
 
 def authenticate(f):
@@ -282,6 +290,25 @@ def postUsers():
 def getUsers(reqUser):
     users = User.query.all()
     return jsonify([user.toJSON() for user in users])
+
+
+@app.route('/api/users/boats')
+@authenticate
+def getBoats(reqUser):
+    boats = reqUser.boats.all()
+    boatJsn = []
+    for boat in boats:
+        boatJsn.append(boat.toJSON())
+    return jsonify(boatJsn)
+
+
+@app.route('/api/devies/typedives')
+def getTypeDives():
+    typeDives = TypeDive.query.all()
+    typeDivesJsn = []
+    for typeDive in typeDives:
+        typeDivesJsn.append(typeDive.toJSON())
+    return jsonify(typeDivesJsn)
 
 
 @app.route('/api/users/<int:id>/permit.pdf', methods=['GET'])
