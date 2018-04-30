@@ -121,7 +121,7 @@ def emailconfirm(emailtoken):
 
     token = generate_id_token(user.id).decode('utf-8')
 
-    return redirect('{webappUrl}#/?flash_message=email_confirm_success&token={token}'.format(webappUrl=app.config['WEBAPP_URL'], token=token), code=302)  # noqa
+    return redirect('{webappUrl}/?flash_message=email_confirm_success&token={token}'.format(webappUrl=app.config['WEBAPP_URL'], token=token), code=302)  # noqa
 
 
 @app.route('/api/users/login', methods=['POST'])
