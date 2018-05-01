@@ -2,7 +2,7 @@
 
 ## Setup
 
-### Install database and packages dependancies
+### Install database and packages dependencies
 
 #### Linux
 ```sh
