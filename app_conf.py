@@ -15,5 +15,5 @@ VALID_EMAIL_REGEX = r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
 PERMIT_TEMPLATE = 'assets/reglement_2017.pdf'
 PERMITS_DIR = 'permits'
 SENDGRID_API_KEY = SENDGRID_KEY
-WEBAPP_URL = 'http://localhost:4200'
+WEBAPP_URL = 'http://149.202.44.29/capel-client'
 SERVER_URL = 'https://capel-beta.herokuapp.com/'
