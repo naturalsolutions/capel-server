@@ -161,3 +161,8 @@ heroku ps:scale web=1
 heroku open
 heroku logs -t
 ```
+
+get remote branch heroku
+
+eroku git:remote -a
+
