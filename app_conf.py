@@ -3,7 +3,7 @@ try:
     from dba import DATABASE_URL, SENDGRID_KEY
 except Exception:
     DATABASE_URL = f'postgresql://postgres@localhost/capel'
-    SENDGRID_KEY = 'Please fill in your sendgrid api key.'  # TODO: raise
+    SENDGRID_KEY = 'Please fill in your sendgrid api key.'  # TODO: should raise
 
 SQLALCHEMY_DATABASE_URI = DATABASE_URL
 SQLALCHEMY_TRACK_MODIFICATIONS = False
