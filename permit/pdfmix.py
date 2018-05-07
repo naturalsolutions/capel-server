@@ -6,8 +6,8 @@ from reportlab.lib.pagesizes import A4
 
 
 class Applicant(object):
-    def __init__(self, properties):
-        self.properties = properties
+    def __init__(self, features):
+        self.features = features
 
 
 class Boat(object):
@@ -16,7 +16,7 @@ class Boat(object):
         self.matriculation = matriculation
 
 
-class Permit(object):
+class PermitView(object):
     def __init__(
             self,
             applicant,
@@ -49,8 +49,8 @@ class Permit(object):
         c.setFont('Helvetica', font_size)
         textobject = c.beginText()
 
-        for prop in self.applicant.properties:
-            value, x, y = prop
+        for feature in self.applicant.features:
+            value, x, y = feature
             textobject.setTextOrigin(x, y)
             textobject.textLine(value)
 
