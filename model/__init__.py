@@ -1,14 +1,27 @@
-from app import app
+import re
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from geoalchemy2 import Geometry
 
 
-# db.init(app)
-db = SQLAlchemy(app)
+DUPLICATE_KEY_ERROR_REGEX = r'DETAIL:\s+Key \((?P<duplicate_key>.*)\)=\(.*\) already exists.'  # noqa
 
-__all__ = ['db', 'User', 'Boat', 'Permit',
+db = SQLAlchemy()
+migrate = Migrate()
+
+__all__ = ['db', 'migrate', 'User', 'Boat', 'Permit',
            'TypeDive', 'DiveSite', 'Dive', 'DiveTypeDive', 'DiveBoat',
-           'Weather']
+           'Weather', 'not_null_constraint_key', 'unique_constraint_key']
+
+
+def not_null_constraint_key(error):
+    return error.split('violates not-null constraint')[0] \
+                .split('column')[1].strip().replace('"', '')
+
+
+def unique_constraint_key(error):
+    m = re.search(DUPLICATE_KEY_ERROR_REGEX, error)
+    return m.group('duplicate_key')
 
 
 # Define the Boat data model
@@ -86,11 +99,9 @@ class Permit(db.Model):
     updatedAt = db.Column(db.DateTime)
     endAt = db.Column(db.DateTime)
     user_id = db.Column(
-        db.Integer(), db.ForeignKey('users.id',
-                                    ondelete='CASCADE'))
+        db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
     divesite_id = db.Column(
-        db.Integer(), db.ForeignKey('divesites.id',
-                                    ondelete='CASCADE'))
+        db.Integer(), db.ForeignKey('divesites.id', ondelete='CASCADE'))
 
 
 # Define the TypeDive data model
