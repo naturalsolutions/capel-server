@@ -27,7 +27,7 @@ def post_dive(reqUser=None, id=id) -> Response:
     db.session.add(weather)
     db.session.commit()
 
-    dive = extract_dive(dive_site, weather, payload)
+    dive = extract_dive(id, dive_site, weather, payload)
     db.session.add(dive)
     db.session.commit()
 
@@ -35,7 +35,7 @@ def post_dive(reqUser=None, id=id) -> Response:
     db.session.add_all(divetypedives)
     db.session.commit()
 
-    boats = extract_boats(payload)
+    boats = extract_boats(id, dive, payload)
     db.session.add_all(boats)
     db.session.commit()
 
@@ -64,7 +64,7 @@ def extract_weather(payload: Mapping) -> Weather:
     ]})
 
 
-def extract_dive(dive_site: DiveSite, weather: Weather,
+def extract_dive(id: int, dive_site: DiveSite, weather: Weather,
                  payload: Mapping) -> Dive:
     return Dive(
         divingDate=payload['divingDate'],
@@ -88,7 +88,7 @@ def extract_dive_types(dive: Dive, payload: Mapping) -> Sequence[DiveTypeDive]:
         if d['name']]
 
 
-def extract_boats(dive: Dive, payload: Mapping) -> Sequence[DiveBoat]:
+def extract_boats(id: int, dive: Dive, payload: Mapping) -> Sequence[DiveBoat]:
     return [
         DiveBoat(
             dive_id=dive.id,
