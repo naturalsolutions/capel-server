@@ -177,7 +177,7 @@ class DiveTypeDive(db.Model):
 
     id = db.Column(db.Integer(), primary_key=True)
     divetype_id = db.Column(
-        db.Integer(), db.ForeignKey('divesites.id', ondelete='CASCADE'))
+        db.Integer(), db.ForeignKey('typedives.id', ondelete='CASCADE'))
     dive_id = db.Column(
         db.Integer(), db.ForeignKey('dives.id', ondelete='CASCADE'))
     nbrDivers = db.Column(db.Integer())

@@ -109,3 +109,4 @@ migrations/__pycache__
 dba.py
 .venv/
 .env
+model/structures.csv

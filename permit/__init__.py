@@ -2,7 +2,7 @@ import os
 import sys
 import datetime
 from traceback import format_exception_only
-from flask import (Blueprint, current_app, Response)
+from flask import (Blueprint, Response, current_app)
 
 from auth import authenticate
 from model import User
@@ -22,14 +22,18 @@ def init_app(app):
 @authenticate
 def getPermit(reqUser, id):
     response = None
+
+    if (reqUser.id != id):
+        return '500 error', 500
+
     user = User.query.filter_by(id=id).first_or_404()
     if user is not None:
         now = datetime.datetime.utcnow()
         f = '/'.join([
             DATA_DIR,
             '_'.join(['permit', 'capel',
-                      str(now.year), str(user.firstname),
-                      str(user.id)]) + '.pdf'])
+                      str(now.year), str(user.firstname), str(user.id)])
+            + '.pdf'])
 
         if not os.path.isfile(f):
             from .pdfmix import Applicant, PermitView

@@ -25,8 +25,8 @@ if os.environ.get('CAPEL_CONF', None):
     app.config.from_envvar('CAPEL_CONF')
 
 from model import (
-    db, migrate, User, Boat, TypeDive,
-    unique_constraint_key, not_null_constraint_key)  # noqa
+    db, migrate, unique_constraint_key, not_null_constraint_key,
+    User, Boat, TypeDive)  # noqa
 db.init_app(app)
 migrate.init_app(app, db)
 
@@ -34,9 +34,8 @@ from auth import (
     authenticate, authenticateOrNot,
     generate_token, generate_id_token, make_digest, compare_digest)  # noqa
 
-from asset import assets  # noqa
+from assets import assets  # noqa
 app.register_blueprint(assets)
-
 
 import permit  # noqa
 app.register_blueprint(permit.permit)
@@ -69,7 +68,7 @@ def login():
         user = User.query.filter_by(username=request.json['username']).first()
     except Exception as e:
         return make_response(
-            'Could not authenticate bla.', 401)
+            'Could not authenticate.', 401)
     if user is None:
         return jsonify(error='Not registered.'), 401
 
@@ -257,7 +256,7 @@ def validate_boats(boats):
     for i, boat in enumerate(boats):
         if boat in (None, ''):
             errors.append(
-                {'name': 'invalid_format', 'key': f'boat at index {i}'})
+                {'name': 'invalid_format', 'key': f'boat{i}'})
             continue
 
         elif boat.get('name') in (None, ''):
