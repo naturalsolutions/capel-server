@@ -22,10 +22,6 @@ def init_app(app):
 @authenticate
 def getPermit(reqUser, id):
     response = None
-
-    if (reqUser.id != id):
-        return '500 error', 500
-
     user = User.query.filter_by(id=id).first_or_404()
     if user is not None:
         now = datetime.datetime.utcnow()
