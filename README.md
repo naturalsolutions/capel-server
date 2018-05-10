@@ -158,6 +158,7 @@ git push heroku <branchname>:master
 heroku run upgrade
 # Ensure that at least one instance of the app is running
 heroku ps:scale web=1  
+heroku config:set WEB_CONCURRENCY=3
 heroku open
 heroku logs -t
 ```
