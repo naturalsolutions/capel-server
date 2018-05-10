@@ -9,7 +9,7 @@ from model import User
 
 DATA_DIR = None
 
-permit = Blueprint('permit', __name__)
+permits = Blueprint('permit', __name__)
 
 
 def init_app(app):
@@ -18,7 +18,7 @@ def init_app(app):
     os.makedirs(DATA_DIR, exist_ok=True)
 
 
-@permit.route('/api/users/<int:id>/permit.pdf', methods=['GET'])
+@permits.route('/api/users/<int:id>/permit.pdf', methods=['GET'])
 @authenticate
 def getPermit(reqUser, id):
     response = None

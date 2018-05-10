@@ -4,9 +4,9 @@ from flask import (Blueprint, jsonify, request, Response)
 from sqlalchemy import func, cast
 import geoalchemy2
 
-from auth import authenticate
 from model import (
     db, Boat, Weather, DiveSite, TypeDive, DiveTypeDive, Dive, DiveBoat)
+from auth import authenticate
 
 
 dives = Blueprint('dives', __name__)
