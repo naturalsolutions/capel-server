@@ -1,6 +1,8 @@
+import sys
+from traceback import format_exception_only
 from datetime import datetime
 from typing import Mapping, Sequence
-from flask import (Blueprint, jsonify, request, Response)
+from flask import (Blueprint, jsonify, request, Response, current_app)
 from sqlalchemy import func, cast
 import geoalchemy2
 
@@ -23,31 +25,37 @@ def get_dives(reqUser):
 @dives.route('/api/users/<int:id>/dive', methods=['POST'])
 @authenticate
 def post_dive(reqUser=None, id=id) -> Response:
-    payload = request.get_json()
+    try:
+        payload = request.get_json()
 
-    # TODO: dive structure
+        # TODO: dive structure
 
-    dive_site = extract_site(payload)
-    db.session.add(dive_site)
-    db.session.commit()
+        dive_site = extract_site(payload)
+        weather = extract_weather(payload)
+        db.session.add_all(dive_site, weather)
+        db.session.commit()
 
-    weather = extract_weather(payload)
-    db.session.add(weather)
-    db.session.commit()
+        dive = extract_dive(id, dive_site, weather, payload)
+        db.session.add(dive)
+        db.session.commit()
 
-    dive = extract_dive(id, dive_site, weather, payload)
-    db.session.add(dive)
-    db.session.commit()
+        divetypedives = extract_dive_types(dive, payload)
+        boats = extract_boats(id, dive, payload)
+        db.session.add_all(divetypedives, boats)
+        db.session.commit()
 
-    divetypedives = extract_dive_types(dive, payload)
-    db.session.add_all(divetypedives)
-    db.session.commit()
+        return jsonify('success'), 200
 
-    boats = extract_boats(id, dive, payload)
-    db.session.add_all(boats)
-    db.session.commit()
+    except Exception:
+        db.rollback()
+        err_type, err_value, tb = sys.exc_info()
+        current_app.logger.warn(
+            ''.join(format_exception_only(err_type, err_value)))
 
-    return jsonify('success'), 200
+        if err_type == 'TypeError':
+            return jsonify(error='Invalid JSON.'), 400
+
+        return jsonify(error='Dive registration error.'), 400
 
 
 def extract_site(payload) -> DiveSite:
