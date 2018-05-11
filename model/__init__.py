@@ -24,29 +24,6 @@ def unique_constraint_key(error):
     return m.group('duplicate_key')
 
 
-# Define the Boat data model
-class Boat(db.Model):
-
-    __tablename__ = 'boats'
-    __table_args__ = {'extend_existing': True}
-
-    id = db.Column(db.Integer(), primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
-    matriculation = db.Column(db.Unicode(255), unique=True)
-    user_id = db.Column(
-        db.Integer(), db.ForeignKey('users.id'))
-
-    def __repr__(self):
-        return '<Boat %r>' % self.name
-
-    def toJSON(self):
-        return {
-            'id': self.id,
-            'name': self.name,
-            'matriculation': self.matriculation
-        }
-
-
 # Define the User data model. Make sure to add the flask_user.UserMixin !!
 class User(db.Model):
 
@@ -54,55 +31,17 @@ class User(db.Model):
     __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), unique=True, nullable=False)
-    password = db.Column(db.String(255), nullable=False)
-    email = db.Column(db.String(255), unique=True, nullable=False)
-    category = db.Column(db.String(64), nullable=False)
-    address = db.Column(db.Text, nullable=False)
-    phone = db.Column(db.String(255), nullable=False)
-    firstname = db.Column(db.String(255), nullable=False)
-    lastname = db.Column(db.String(255), nullable=False)
-    status = db.Column(db.String(255))
-    createdAt = db.Column(db.DateTime)
-
-    boats = db.relationship('Boat', backref='users', lazy='dynamic')
-
-    def __repr__(self):
-        return '<User %r>' % self.username
-
-    def toJSON(self):
-        return {
-            'id': self.id,
-            'username': self.username,
-            'email': self.email,
-            'category': self.category,
-            'address': self.address,
-            'phone': self.phone,
-            'firstname': self.firstname,
-            'lastname': self.lastname,
-            'status': self.status,
-            'createdAt': self.createdAt.utcnow()
-        }
-
-
-
-# Define the User data model. Make sure to add the flask_user.UserMixin !!
-class User(db.Model):
-
-    __tablename__ = 'users'
-    __table_args__ = {'extend_existing': True}
-
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), unique=True, nullable=False)
-    password = db.Column(db.String(255), nullable=False)
-    email = db.Column(db.String(255), unique=True, nullable=False)
-    category = db.Column(db.String(64), nullable=False)
-    address = db.Column(db.Text, nullable=False)
-    phone = db.Column(db.String(255), nullable=False)
-    firstname = db.Column(db.String(255), nullable=False)
-    lastname = db.Column(db.String(255), nullable=False)
-    status = db.Column(db.String(255))
-    createdAt = db.Column(db.DateTime)
+    username = db.Column(db.String(64), unique=True, nullable=True)
+    password = db.Column(db.String(255), nullable=True)
+    email = db.Column(db.String(255), unique=True, nullable=True)
+    category = db.Column(db.String(64), nullable=True)
+    address = db.Column(db.Text, nullable=True)
+    phone = db.Column(db.String(255), nullable=True)
+    website = db.Column(db.String(255), nullable=True)
+    firstname = db.Column(db.String(255), nullable=True)
+    lastname = db.Column(db.String(255), nullable=True)
+    status = db.Column(db.String(255), nullable=True)
+    createdAt = db.Column(db.DateTime, nullable=True)
 
     boats = db.relationship('Boat', backref='users', lazy='dynamic')
     dives = db.relationship('Dive', backref='users', lazy='dynamic')
