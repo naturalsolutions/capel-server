@@ -20,7 +20,7 @@ def init_app(app):
 
 @permits.route('/api/users/<int:id>/permit.pdf', methods=['GET'])
 @authenticate
-def getPermit(reqUser, id):
+def get_permit(reqUser, id):
     response = None
     user = User.query.filter_by(id=id).first_or_404()
     if user is not None:
