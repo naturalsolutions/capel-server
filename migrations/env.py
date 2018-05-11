@@ -1,6 +1,7 @@
 from __future__ import with_statement
 from alembic import context
 from sqlalchemy import engine_from_config, pool
+from flask import current_app
 from logging.config import fileConfig
 import logging
 
@@ -17,7 +18,6 @@ logger = logging.getLogger('alembic.env')
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-from flask import current_app
 config.set_main_option('sqlalchemy.url',
                        current_app.config.get('SQLALCHEMY_DATABASE_URI'))
 target_metadata = current_app.extensions['migrate'].db.metadata
@@ -26,6 +26,8 @@ target_metadata = current_app.extensions['migrate'].db.metadata
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+
+
 def include_object(object, name, type_, reflected, compare_to):
     if (name == 'spatial_ref_sys'):
         return False
@@ -46,6 +48,7 @@ def run_migrations_offline():
 
     """
     url = config.get_main_option("sqlalchemy.url")
+    context.configure(url=url)
     context.configure(
         url=url,
         include_object=include_object
@@ -89,6 +92,7 @@ def run_migrations_online():
             context.run_migrations()
     finally:
         connection.close()
+
 
 if context.is_offline_mode():
     run_migrations_offline()
