@@ -32,7 +32,7 @@ def post_dive(reqUser=None, id=id) -> Response:
 
         dive_site = extract_site(payload)
         weather = extract_weather(payload)
-        db.session.add_all(dive_site, weather)
+        db.session.add_all([dive_site, weather])
         db.session.commit()
 
         dive = extract_dive(id, dive_site, weather, payload)
@@ -41,13 +41,13 @@ def post_dive(reqUser=None, id=id) -> Response:
 
         divetypedives = extract_dive_types(dive, payload)
         boats = extract_boats(id, dive, payload)
-        db.session.add_all(divetypedives, boats)
+        db.session.add_all([divetypedives, boats])
         db.session.commit()
 
         return jsonify('success'), 200
 
     except Exception:
-        db.rollback()
+        db.session.rollback()
         err_type, err_value, tb = sys.exc_info()
         current_app.logger.warn(
             ''.join(format_exception_only(err_type, err_value)))
