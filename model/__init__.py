@@ -37,7 +37,7 @@ class User(db.Model):
     category = db.Column(db.String(64), nullable=True)
     address = db.Column(db.Text, nullable=True)
     phone = db.Column(db.String(255), nullable=True)
-    #website = db.Column(db.String(255), nullable=True)
+    website = db.Column(db.String(255), nullable=True)
     firstname = db.Column(db.String(255), nullable=True)
     lastname = db.Column(db.String(255), nullable=True)
     status = db.Column(db.String(255), nullable=True)
