@@ -5,6 +5,7 @@ import sys
 import datetime
 import re
 from traceback import format_exception_only
+import traceback
 from functools import wraps
 from flask import (Flask, jsonify, request, make_response, redirect,
                    Response, send_from_directory)
@@ -32,9 +33,8 @@ CORS(app)
 app.config.from_object('app_conf')
 if os.environ.get('CAPEL_CONF', None):
     app.config.from_envvar('CAPEL_CONF')
-
-from models import db, User, Boat, TypeDive  # noqa
-# db.init(app)
+from models import db, User, Boat, TypeDive, Weather  # noqa
+#db.init(app)
 migrate = Migrate(app, db)
 
 
@@ -227,7 +227,7 @@ def postUsers():
     except Exception as e:
         err_type, err_value, tb = sys.exc_info()
         app.logger.warn(''.join(format_exception_only(err_type, err_value)))
-
+        traceback.print_exc()
         if err_type == 'TypeError':
             return jsonify(error='Invalid JSON.'), 400
 
@@ -283,6 +283,48 @@ def postUsers():
 def getUsers(reqUser):
     users = User.query.all()
     return jsonify([user.toJSON() for user in users])
+
+@app.route('/api/dive', methods=['POST'])
+@authenticate
+def getSaveDive(reqUser):
+    try:
+        dive = request.get_json()
+    except Exception:
+        return jsonify(error='Invalid JSON.')
+    try:
+        if not dive.get('divingDate', None):
+            return jsonify(error='Invalid diving date.')
+
+        boats = dive.get('boats', None)
+        print(boats)
+
+        if boats:
+            if not isinstance(boats, list) or not validate_boats(boats):
+                return jsonify(
+                    error={'name': 'invalid_model',
+                           'errors': [{'name': 'invalid_format',
+                                       'key': 'boats'}]}), 400
+
+            dive['boats'] = [Boat(**boat) for boat in boats]
+            dive['weather'] = Weather(
+                                dive['skey'],
+                                dive['seaState'],
+                                dive['wind'],
+                                dive['water_temperature'],
+                                dive['wind_temperature'],
+                                dive['visibility = visibility']
+                                )
+            dive = Dive(**dive)
+            print(dive)
+            db.session.add(dive)
+
+            return jsonify(error='Invalid diving date.')
+    except Exception:
+        traceback.print_exc()
+        err_type, err_value, tb = sys.exc_info()
+        app.logger.warn(
+            ''.join(format_exception_only(err_type, err_value)))
+        return '500 error', 500
 
 
 @app.route('/api/users/boats')
