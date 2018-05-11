@@ -37,7 +37,7 @@ class User(db.Model):
     category = db.Column(db.String(64), nullable=True)
     address = db.Column(db.Text, nullable=True)
     phone = db.Column(db.String(255), nullable=True)
-    website = db.Column(db.String(255), nullable=True)
+    #website = db.Column(db.String(255), nullable=True)
     firstname = db.Column(db.String(255), nullable=True)
     lastname = db.Column(db.String(255), nullable=True)
     status = db.Column(db.String(255), nullable=True)
@@ -151,8 +151,8 @@ class Dive(db.Model):
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
     divesite_id = db.Column(db.Integer(), db.ForeignKey('divesites.id', ondelete='CASCADE'))
     weather_id = db.Column(db.Integer(), db.ForeignKey('weathers.id', ondelete='CASCADE'))
-    latitude = db.Column(db.String())
-    longitude = db.Column(db.String())
+    #latitude = db.Column(db.String())
+    #longitude = db.Column(db.String())
     weather = db.relationship("Weather", uselist=False, backref="dives", foreign_keys=[weather_id])
     boats = db.relationship('Boat', secondary='diveboats', backref="dive")
     typeDives = db.relationship("TypeDive", secondary="divetypedives",  backref="dive")
@@ -164,8 +164,8 @@ class Weather(db.Model):
     __tablename__ = 'weathers'
     __table_args__ = {'extend_existing': True}
 
-    def __init__(self, skey, seaState, wind, water_temperature, wind_temperature, visibility):
-        self.skey = skey
+    def __init__(self, sky, seaState, wind, water_temperature, wind_temperature, visibility):
+        self.sky = sky
         self.seaState = seaState
         self.wind = wind
         self.water_temperature = water_temperature
