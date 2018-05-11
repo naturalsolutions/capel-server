@@ -2,12 +2,10 @@ import os
 from datetime import timedelta
 try:
     from dba import DATABASE_URL, SENDGRID_KEY
-    print('yay')
 except Exception:
     # DATABASE_URL = f'postgresql://postgres:@localhost/capel'
     DATABASE_URL = os.environ.get('DATABASE_URL')
     SENDGRID_KEY = os.environ.get('SENDGRID_KEY')
-    print('env')
 
 SQLALCHEMY_DATABASE_URI = DATABASE_URL
 SQLALCHEMY_TRACK_MODIFICATIONS = False
