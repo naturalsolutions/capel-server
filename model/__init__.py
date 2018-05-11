@@ -2,7 +2,7 @@ import re
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from geoalchemy2 import Geometry
-
+import json
 
 DUPLICATE_KEY_ERROR_REGEX = r'DETAIL:\s+Key \((?P<duplicate_key>.*)\)=\(.*\) already exists.'  # noqa
 
@@ -37,7 +37,7 @@ class User(db.Model):
     category = db.Column(db.String(64), nullable=True)
     address = db.Column(db.Text, nullable=True)
     phone = db.Column(db.String(255), nullable=True)
-    website = db.Column(db.String(255), nullable=True)
+    #website = db.Column(db.String(255), nullable=True)
     firstname = db.Column(db.String(255), nullable=True)
     lastname = db.Column(db.String(255), nullable=True)
     status = db.Column(db.String(255), nullable=True)
@@ -158,6 +158,18 @@ class Dive(db.Model):
     typeDives = db.relationship("TypeDive", secondary="divetypedives",  backref="dive")
     user = db.relationship("User", back_populates="dives")
 
+    def toJSON(self):
+
+        return {
+            'id': self.id,
+            'divingDate': self.divingDate,
+            'weather': self.weather.toJSON(),
+            'boats': [[ boat.toJSON() ] for boat in self.boats],
+            'times': [[json.dumps(time, indent=4, sort_keys=True, default=str)] for time in self.times],
+            'typeDives': [[ typeDive.toJSON() ] for typeDive in self.typeDives],
+            'user': self.user.toJSON()
+        }
+
 # Define the Weather data model
 class Weather(db.Model):
 
@@ -182,6 +194,16 @@ class Weather(db.Model):
     dive_id = db.Column(db.Integer(), db.ForeignKey('dives.id'))
     dive = db.relationship("Dive", uselist=False, backref="weathers", foreign_keys=[dive_id])
 
+    def toJSON(self):
+        return {
+            'id': self.id,
+            'sky': self.sky,
+            'seaState': self.seaState,
+            'wind': self.wind,
+            'water_temperature': self.water_temperature,
+            'wind_temperature': self.wind_temperature,
+            'visibility': self.visibility
+        }
 
 
 

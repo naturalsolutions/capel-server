@@ -11,6 +11,14 @@ from auth import authenticate
 
 dives = Blueprint('dives', __name__)
 
+@dives.route('/api/users/dives', methods=['GET'])
+@authenticate
+def get_dives(reqUser):
+    dives = reqUser.dives.all()
+    diveJsn = []
+    for dive in dives:
+        diveJsn.append(dive.toJSON())
+    return jsonify(diveJsn)
 
 @dives.route('/api/users/<int:id>/dive', methods=['POST'])
 @authenticate
