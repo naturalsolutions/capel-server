@@ -97,8 +97,9 @@ def post_users():
 
 
 @users.route('/api/users', methods=['GET'])
-@authenticate
-def getUsers(reqUser):
+# @authenticate'
+# def getUsers(reqUser):
+def getUsers():
     users = User.query.all()
     return jsonify([user.toJSON() for user in users])
 

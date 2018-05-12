@@ -7,11 +7,13 @@ from sqlalchemy import func, cast
 import geoalchemy2
 
 from model import (
-    db, Boat, Weather, DiveSite, TypeDive, DiveTypeDive, Dive, DiveBoat)
+    db, User, Boat, Weather, DiveSite,
+    TypeDive, DiveTypeDive, Dive)
 from auth import authenticate
 
 
 dives = Blueprint('dives', __name__)
+
 
 @dives.route('/api/users/dives', methods=['GET'])
 @authenticate
@@ -22,28 +24,20 @@ def get_dives(reqUser):
         diveJsn.append(dive.toJSON())
     return jsonify(diveJsn)
 
+
 @dives.route('/api/users/<int:id>/dive', methods=['POST'])
 @authenticate
 def post_dive(reqUser=None, id=id) -> Response:
     try:
         payload = request.get_json()
-
-        # TODO: dive structure
-
         dive_site = extract_site(payload)
-        weather = extract_weather(payload)
-        db.session.add_all([dive_site, weather])
-        db.session.commit()
-
-        dive = extract_dive(id, dive_site, weather, payload)
+        dive = extract_dive(dive_site, id, payload)
         db.session.add(dive)
         db.session.commit()
 
         divetypedives = extract_dive_types(dive, payload)
-        boats = extract_boats(id, dive, payload)
-        db.session.add_all([divetypedives, boats])
+        db.session.add_all(divetypedives)
         db.session.commit()
-
         return jsonify('success'), 200
 
     except Exception:
@@ -51,6 +45,7 @@ def post_dive(reqUser=None, id=id) -> Response:
         err_type, err_value, tb = sys.exc_info()
         current_app.logger.warn(
             ''.join(format_exception_only(err_type, err_value)))
+        raise
 
         if err_type == 'TypeError':
             return jsonify(error='Invalid JSON.'), 400
@@ -59,7 +54,7 @@ def post_dive(reqUser=None, id=id) -> Response:
 
 
 def extract_site(payload) -> DiveSite:
-    if payload['referenced'] != 'notreferenced':
+    if payload['referenced'] == 'referenced':
         dive_site = DiveSite.query.filter_by(referenced=payload['referenced'])\
                                   .first()
     else:
@@ -80,34 +75,37 @@ def extract_weather(payload: Mapping) -> Weather:
     ]})
 
 
-def extract_dive(id: int, dive_site: DiveSite, weather: Weather,
-                 payload: Mapping) -> Dive:
+def extract_dive(
+        dive_site: DiveSite,
+        uid: int,
+        payload: Mapping) -> Dive:
     return Dive(
         divingDate=payload['divingDate'],
         times=[[
             datetime.strptime(t['startTime'], '%H:%M').time(),
             datetime.strptime(t['endTime'], '%H:%M').time()
         ] for t in payload['times']],
-        user_id=id,
         divesite_id=dive_site.id,
-        weather_id=weather.id)
+        weather=Weather(**{p: payload[p] for p in [
+            'sky', 'seaState', 'wind', 'water_temperature',
+            'wind_temperature', 'visibility'
+        ]}),
+        latitude=payload['latlng']['lat'],  # if payload['referenced'] != 'referenced' && payload('latlng', None) else None,  # noqa
+        longitude=payload['latlng']['lng'],  # if payload['referenced'] != 'referenced' && payload('latlng', None) else None,  # noqa
+        boats=[
+            Boat.query.filter(
+                Boat.user_id == uid, Boat.name == boat['boat']).first().id
+            for boat in payload['boats']],
+        shop_id=payload['structure']['id'] if payload['isWithStructure'] else None,  # noqa
+        user_id=uid
+    )
 
 
 def extract_dive_types(dive: Dive, payload: Mapping) -> Sequence[DiveTypeDive]:
     return [
         DiveTypeDive(
-            divetype_id=TypeDive.query.filter_by(name=d['name_mat'])
-                                      .first().id,
+            divetype_id=TypeDive.query.filter_by(name=d['nameMat']).first().id,
             dive_id=dive.id,
             nbrDivers=d['nbrDivers'])
         for d in payload['divetypes']
         if d['name']]
-
-
-def extract_boats(id: int, dive: Dive, payload: Mapping) -> Sequence[DiveBoat]:
-    return [
-        DiveBoat(
-            dive_id=dive.id,
-            boat_id=Boat.query.filter(
-                Boat.user_id == id, Boat.name == boat['boat']).first().id)
-        for boat in payload['boats']]
