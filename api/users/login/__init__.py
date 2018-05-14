@@ -6,25 +6,23 @@ from auth import (
     generate_token, generate_id_token, make_digest, compare_digest)
 from mail import EmailTemplate, sendmail
 
-login_bp = Blueprint('login', __name__)
+login = Blueprint('login', __name__)
 
 
-@login_bp.route('/api/users/login', methods=['POST'])
+@login.route('/api/users/login', methods=['POST'])
 def log_in():
     user = None
 
     # Required fields
-    if (request.json is None or
-        request.json.get('password') in (None, '') or
+    if (request.json.get('password') in (None, '') or
             request.json.get('username') in (None, '')):
-        return make_response('Could not authenticate.', 401)
+        return jsonify(error='Could not authenticate.'), 401
 
     # Registered user
     try:
         user = User.query.filter_by(username=request.json['username']).first()
     except Exception as e:
-        return make_response(
-            'Could not authenticate.', 401)
+        return jsonify(error='Could not authenticate.'), 401
     if user is None:
         return jsonify(error='Not registered.'), 401
 

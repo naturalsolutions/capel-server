@@ -110,3 +110,4 @@ dba.py
 .venv/
 .env
 model/structures.csv
+migrations/versions/
