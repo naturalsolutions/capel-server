@@ -145,13 +145,14 @@ class Dive(db.Model):
     times = db.Column(db.ARRAY(db.Time, dimensions=2))
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))  # noqa
     divesite_id = db.Column(db.Integer(), db.ForeignKey('divesites.id', ondelete='CASCADE'))  # noqa
-    weather_id = db.Column(db.Integer(), db.ForeignKey('weathers.id', ondelete='CASCADE'))  # noqa
     latitude = db.Column(db.String())
     longitude = db.Column(db.String())
-    shop_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
+    weather_id = db.Column(db.Integer(), db.ForeignKey('weathers.id', ondelete='CASCADE'))  # noqa
     weather = db.relationship("Weather", uselist=False, backref="dives", foreign_keys=[weather_id])  # noqa
     boats = db.relationship('Boat', secondary='diveboats', backref="dive")
     typeDives = db.relationship("TypeDive", secondary="divetypedives",  backref="dive")  # noqa
+    # shop_id = db.Column(db.Integer(), db.ForeignKey('users.id')  # noqa
+    # shop = db.relationship("User", foreign_keys=[shop_id])
     user = db.relationship("User", back_populates="dives")
 
     def toJSON(self):

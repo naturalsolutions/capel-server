@@ -38,6 +38,7 @@ def post_dive(reqUser=None, id=id) -> Response:
         divetypedives = extract_dive_types(dive, payload)
         db.session.add_all(divetypedives)
         db.session.commit()
+
         return jsonify('success'), 200
 
     except Exception:
@@ -80,12 +81,13 @@ def extract_dive(
         uid: int,
         payload: Mapping) -> Dive:
     return Dive(
+        user_id=uid,
+        divesite_id=dive_site.id,
         divingDate=payload['divingDate'],
         times=[[
             datetime.strptime(t['startTime'], '%H:%M').time(),
             datetime.strptime(t['endTime'], '%H:%M').time()
         ] for t in payload['times']],
-        divesite_id=dive_site.id,
         weather=Weather(**{p: payload[p] for p in [
             'sky', 'seaState', 'wind', 'water_temperature',
             'wind_temperature', 'visibility'
@@ -96,8 +98,7 @@ def extract_dive(
             Boat.query.filter(
                 Boat.user_id == uid, Boat.name == boat['boat']).first().id
             for boat in payload['boats']],
-        shop_id=payload['structure']['id'] if payload['isWithStructure'] else None,  # noqa
-        user_id=uid
+        # shop=User.query.get(payload['structure']['id']) if payload['isWithStructure'] else None,  # noqa
     )
 
 
