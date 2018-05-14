@@ -148,12 +148,12 @@ class Dive(db.Model):
     latitude = db.Column(db.String())
     longitude = db.Column(db.String())
     weather_id = db.Column(db.Integer(), db.ForeignKey('weathers.id', ondelete='CASCADE'))  # noqa
-    weather = db.relationship("Weather", uselist=False, backref="dives", foreign_keys=[weather_id])  # noqa
-    boats = db.relationship('Boat', secondary='diveboats', backref="dive")
-    typeDives = db.relationship("TypeDive", secondary="divetypedives",  backref="dive")  # noqa
-    # shop_id = db.Column(db.Integer(), db.ForeignKey('users.id')  # noqa
-    # shop = db.relationship("User", foreign_keys=[shop_id])
-    user = db.relationship("User", back_populates="dives")
+    weather = db.relationship('Weather', back_populates='dives')
+    boats = db.relationship('Boat', secondary='diveboats', backref='dive')
+    typeDives = db.relationship('TypeDive', secondary='divetypedives',  backref='dive')  # noqa
+    # shop_id = db.Column(db.Integer(), db.ForeignKey('users.id')
+    # shop = db.relationship('User', foreign_keys=[shop_id])
+    user = db.relationship('User', back_populates='dives')
 
     def toJSON(self):
 
@@ -191,7 +191,7 @@ class Weather(db.Model):
     wind_temperature = db.Column(db.Integer())
     visibility = db.Column(db.Integer())
     dive_id = db.Column(db.Integer(), db.ForeignKey('dives.id'))
-    dive = db.relationship("Dive", uselist=False, backref="weathers", foreign_keys=[dive_id])  # noqa
+    dive = db.relationship('Dive', back_populates='weathers')
 
     def toJSON(self):
         return {
@@ -215,8 +215,8 @@ class DiveTypeDive(db.Model):
     dive_id = db.Column(db.Integer(), db.ForeignKey('dives.id', ondelete='CASCADE'))  # noqa
     nbrDivers = db.Column(db.Integer())
 
-    dive = db.relationship("Dive")
-    typeDive = db.relationship("TypeDive")
+    dive = db.relationship('Dive')
+    typeDive = db.relationship('TypeDive')
 
 
 # Define the DiveBoat data model
@@ -229,5 +229,5 @@ class DiveBoat(db.Model):
     dive_id = db.Column(db.Integer(), db.ForeignKey('dives.id', ondelete='CASCADE'))  # noqa
     boat_id = db.Column(db.Integer(), db.ForeignKey('boats.id', ondelete='CASCADE'))  # noqa
 
-    dive = db.relationship("Dive")
-    boat = db.relationship("Boat")
+    dive = db.relationship('Dive')
+    boat = db.relationship('Boat')
