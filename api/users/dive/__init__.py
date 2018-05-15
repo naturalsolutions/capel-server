@@ -21,11 +21,11 @@ def get_dives(reqUser):
     dives = reqUser.dives.all()
     diveJsn = []
     for dive in dives:
-        diveJsn.append(dive.toJSON())
+        diveJsn.append(dive.json())
     return jsonify(diveJsn)
 
 
-@dives.route('/api/users/<int:id>/dive', methods=['POST'])
+@dives.route('/api/users/<int:id>/dives', methods=['POST'])
 @authenticate
 def post_dive(reqUser=None, id=id) -> Response:
     try:
@@ -71,8 +71,8 @@ def extract_site(payload) -> DiveSite:
 
 def extract_weather(payload: Mapping) -> Weather:
     return Weather(**{p: payload[p] for p in [
-        'sky', 'seaState', 'wind', 'water_temperature',
-        'wind_temperature', 'visibility'
+        'sky', 'sea', 'wind', 'water_temperature',
+        'wind', 'visibility'
     ]})
 
 
@@ -82,23 +82,23 @@ def extract_dive(
         payload: Mapping) -> Dive:
     return Dive(
         user_id=uid,
-        divesite_id=dive_site.id,
+        dive_site_id=dive_site.id,
         divingDate=payload['divingDate'],
         times=[[
             datetime.strptime(t['startTime'], '%H:%M').time(),
             datetime.strptime(t['endTime'], '%H:%M').time()
         ] for t in payload['times']],
         weather=Weather(**{p: payload[p] for p in [
-            'sky', 'seaState', 'wind', 'water_temperature',
-            'wind_temperature', 'visibility'
+            'sky', 'sea', 'wind', 'water_temperature',
+            'wind', 'visibility'
         ]}),
-        latitude=payload['latlng']['lat'],  # if payload['referenced'] != 'referenced' && payload('latlng', None) else None,  # noqa
-        longitude=payload['latlng']['lng'],  # if payload['referenced'] != 'referenced' && payload('latlng', None) else None,  # noqa
+        latitude=payload['latlng']['lat'],
+        longitude=payload['latlng']['lng'],
         boats=[
             Boat.query.filter(
                 Boat.user_id == uid, Boat.name == boat['boat']).first().id
             for boat in payload['boats']],
-        # shop=User.query.get(payload['structure']['id']) if payload['isWithStructure'] else None,  # noqa
+        shop_id=User.query.get(payload['structure']['id']) if payload['isWithStructure'] else None  # noqa
     )
 
 
@@ -107,6 +107,6 @@ def extract_dive_types(dive: Dive, payload: Mapping) -> Sequence[DiveTypeDive]:
         DiveTypeDive(
             divetype_id=TypeDive.query.filter_by(name=d['nameMat']).first().id,
             dive_id=dive.id,
-            nbrDivers=d['nbrDivers'])
+            divers=d['divers'])
         for d in payload['divetypes']
         if d['name']]

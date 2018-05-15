@@ -35,13 +35,13 @@ def sendmail(from_email, to_email, subject, content):
     sg.client.mail.send.post(request_body=mail.get())
 
 
-@mail.route('/emailconfirm/<emailtoken>')
-def emailconfirm(emailtoken):
-    if emailtoken is None:
+@mail.route('/emailconfirm/<email_token>')
+def emailconfirm(email_token):
+    if email_token is None:
         return jsonify(code=401), 401
 
     payload = jwt.decode(
-        emailtoken,
+        email_token,
         key=current_app.config['JWTSECRET'] + b'_emailconfirm',
         algorithm='HS256')
     user = User.query.filter_by(id=payload['id']).first()
@@ -52,6 +52,6 @@ def emailconfirm(emailtoken):
     db.session.commit()
     token = generate_id_token(user.id).decode('utf-8')
     return redirect(
-        '{webappUrl}?flash_message=email_confirm_success&token={token}'
-        .format(webappUrl=current_app.config['WEBAPP_URL'], token=token),
+        '{webapp_url}?flash_message=email_confirm_success&token={token}'
+        .format(webapp_url=current_app.config['WEBAPP_URL'], token=token),
         code=302)

@@ -9,7 +9,7 @@ me = Blueprint('me', __name__)
 @me.route('/api/users/me')
 @authenticate
 def getMe(reqUser):
-    reqUser = reqUser.toJSON()
+    reqUser = reqUser.json()
     return jsonify(reqUser)
 
 
@@ -20,4 +20,4 @@ def patchMe(reqUser):
     User.query.filter_by(id=reqUser.id).update(userPatch)
     db.session.commit()
     user = User.query.filter_by(id=reqUser.id).first()
-    return jsonify(user.toJSON())
+    return jsonify(user.json())

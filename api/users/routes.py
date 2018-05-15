@@ -21,12 +21,14 @@ def post_users():
     # Signup/Register
     try:
         payload = request.get_json()
+        current_app.logger.debug(payload)
     except Exception:
         return jsonify(error='Invalid JSON.')
 
     try:
         if not payload.get('username', None):
             payload['username'] = payload.get('email')
+
         validation = users_validate_required(payload)
         if validation['errors']:
             return jsonify(error={'name': 'invalid_model',
@@ -54,7 +56,7 @@ def post_users():
         if err_type == 'TypeError':
             return jsonify(error='Invalid JSON.'), 400
 
-        return jsonify(error='Empty or malformed required filed user.'), 400
+        return jsonify(error='Empty or malformed required field.'), 400
 
     try:
         db.session.add(user)
@@ -82,25 +84,25 @@ def post_users():
         current_app.config['JWTSECRET'] + b'_emailconfirm').decode('utf-8')
 
     emailBody = EmailTemplate(
-        template=current_app.WELCOME_EMAIL_TEMPLATE,
+        template=current_app.config['WELCOME_EMAIL_TEMPLATE'],
         values={
-            'title': current_app.WELCOME_EMAIL_SUBJECT,
+            'title': current_app.config['WELCOME_EMAIL_SUBJECT'],
             'firstname': user.firstname,
             'serverUrl': current_app.config['SERVER_URL'],
             'token': emailToken
         }).render()
 
     sendmail('no-reply@natural-solutions.eu', user.email,
-             current_app.WELCOME_EMAIL_SUBJECT, emailBody)
+             current_app.config['WELCOME_EMAIL_SUBJECT'], emailBody)
 
-    return jsonify(user.toJSON())
+    return jsonify(user.json())
 
 
 @users.route('/api/users', methods=['GET'])
 @authenticate
 def getUsers(reqUser):
     users = User.query.all()
-    return jsonify([user.toJSON() for user in users])
+    return jsonify([user.json() for user in users])
 
 
 @users.route('/api/users/boats')
@@ -109,7 +111,7 @@ def getBoats(reqUser):
     boats = reqUser.boats.all()
     boatJsn = []
     for boat in boats:
-        boatJsn.append(boat.toJSON())
+        boatJsn.append(boat.json())
     return jsonify(boatJsn)
 
 
@@ -125,7 +127,8 @@ def users_validate_required(user):
                        'message': 'Password length must be >= ' +
                                   current_app.config['VALID_PWD_MIN_LEN']})
 
-    if not re.match(current_app.VALID_EMAIL_REGEX, user['email'], re.I):
+    if not re.match(
+            current_app.config['VALID_EMAIL_REGEX'], user['email'], re.I):
         errors.append({'name': 'invalid_format', 'key': 'email'})
 
     for attr in ('lastname', 'firstname', 'address', 'phone'):
