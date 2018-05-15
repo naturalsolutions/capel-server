@@ -2,7 +2,7 @@ import sys
 from traceback import format_exception_only
 from datetime import datetime
 from typing import Mapping, Sequence
-from flask import (Blueprint, jsonify, request, Response, current_app)
+from flask import (Blueprint, jsonify, request, Response, current_app, json)
 from sqlalchemy import func, cast
 import geoalchemy2
 
@@ -11,6 +11,15 @@ from model import (
     TypeDive, DiveTypeDive, Dive)
 from auth import authenticate
 
+
+WEATHER_DATA_MAP = {
+    'sky': 'sky',
+    'sea': 'seaState',
+    'wind': 'wind',
+    'water_temperature': 'water_temperature',
+    'wind_temperature': 'wind_temperature',
+    'visibility': 'visibility'
+}
 
 dives = Blueprint('dives', __name__)
 
@@ -30,8 +39,14 @@ def get_dives(reqUser):
 def post_dive(reqUser=None, id=id) -> Response:
     try:
         payload = request.get_json()
+        current_app.logger.debug(json.dumps(payload, indent=4))
+
+        weather = extract_weather(payload)
+        db.session.add(weather)
+        db.session.commit()
+
         dive_site = extract_site(payload)
-        dive = extract_dive(dive_site, id, payload)
+        dive = extract_dive(dive_site, weather, id, payload)
         db.session.add(dive)
         db.session.commit()
 
@@ -70,28 +85,23 @@ def extract_site(payload) -> DiveSite:
 
 
 def extract_weather(payload: Mapping) -> Weather:
-    return Weather(**{p: payload[p] for p in [
-        'sky', 'sea', 'wind', 'water_temperature',
-        'wind', 'visibility'
-    ]})
+    return Weather(**{k: payload[v] for k, v in WEATHER_DATA_MAP.items()})
 
 
 def extract_dive(
         dive_site: DiveSite,
+        weather: Weather,
         uid: int,
         payload: Mapping) -> Dive:
     return Dive(
         user_id=uid,
-        dive_site_id=dive_site.id,
-        divingDate=payload['divingDate'],
+        site_id=dive_site.id,
+        date=payload['divingDate'],
         times=[[
             datetime.strptime(t['startTime'], '%H:%M').time(),
             datetime.strptime(t['endTime'], '%H:%M').time()
         ] for t in payload['times']],
-        weather=Weather(**{p: payload[p] for p in [
-            'sky', 'sea', 'wind', 'water_temperature',
-            'wind', 'visibility'
-        ]}),
+        weather_id=weather.id,
         latitude=payload['latlng']['lat'],
         longitude=payload['latlng']['lng'],
         boats=[

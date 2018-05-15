@@ -98,7 +98,7 @@ class Permit(db.Model):
     updated_at = db.Column(db.DateTime)
     end_at = db.Column(db.DateTime)
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))  # noqa
-    dive_site_id = db.Column(db.Integer(), db.ForeignKey('divesites.id', ondelete='CASCADE'))  # noqa
+    site_id = db.Column(db.Integer(), db.ForeignKey('divesites.id', ondelete='CASCADE'))  # noqa
 
 
 class TypeDive(db.Model):
@@ -106,7 +106,7 @@ class TypeDive(db.Model):
     __tablename__ = 'typedives'
     __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer(), primary_key=True)
-    name = db.Column(db.Unicode(255))
+    name = db.Column(db.Unicode(255), nullable=False, unique=True)
 
     def __init__(self, name):
         self.name = name
@@ -137,8 +137,8 @@ class Dive(db.Model):
     __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer(), primary_key=True)
-    diving_date = db.Column(db.DateTime)
-    dive_times = db.Column(db.ARRAY(db.Time, dimensions=2))
+    date = db.Column(db.DateTime)
+    times = db.Column(db.ARRAY(db.Time, dimensions=2))
 
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))  # noqa
     user = db.relationship('User', back_populates='dives', foreign_keys='Dive.user_id')  # noqa
@@ -148,7 +148,7 @@ class Dive(db.Model):
     boats = db.relationship('Boat', secondary='diveboats', backref='dive')
     dive_types = db.relationship('TypeDive', secondary='divetypedives',  backref='dive')  # noqa
 
-    dive_site_id = db.Column(db.Integer(), db.ForeignKey('divesites.id', ondelete='CASCADE'))  # noqa
+    site_id = db.Column(db.Integer(), db.ForeignKey('divesites.id', ondelete='CASCADE'))  # noqa
     latitude = db.Column(db.String())
     longitude = db.Column(db.String())
     weather_id = db.Column(db.Integer(), db.ForeignKey('weathers.id', ondelete='CASCADE'))  # noqa
@@ -157,8 +157,8 @@ class Dive(db.Model):
 
         return {
             'id': self.id,
-            'divingDate': self.diving_date,
-            'weather': self.weather.json(),
+            'divingDate': self.dive_date,
+            'weather': Weather.query.get(self.weather_id),
             'boats': [[boat.json()] for boat in self.boats],
             'times': [[json.dumps(time, default=str)] for time in self.dive_times],  # noqa
             'typeDives': [[d.json()] for d in self.dive_types],
