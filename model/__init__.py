@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from geoalchemy2 import Geometry
 import json
+import datetime
 
 DUPLICATE_KEY_ERROR_REGEX = r'DETAIL:\s+Key \((?P<duplicate_key>.*)\)=\(.*\) already exists.'  # noqa
 
@@ -41,10 +42,10 @@ class User(db.Model):
     firstname = db.Column(db.String(255), nullable=True)
     lastname = db.Column(db.String(255), nullable=True)
     status = db.Column(db.String(255), nullable=True)
-    createdAt = db.Column(db.DateTime, nullable=True)
-
     boats = db.relationship('Boat', backref='users', lazy='dynamic')
     dives = db.relationship('Dive', backref='users', lazy='dynamic')
+    createdAt = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    updatedAt = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     def __repr__(self):
         return '<User %r>' % self.username
@@ -60,7 +61,8 @@ class User(db.Model):
             'firstname': self.firstname,
             'lastname': self.lastname,
             'status': self.status,
-            'createdAt': self.createdAt.utcnow()
+            'createdAt': self.createdAt,
+            'updatedAt': self.updatedAt
         }
 
 
@@ -72,7 +74,7 @@ class Boat(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(50), nullable=False)
     matriculation = db.Column(db.Unicode(255), unique=True)
-    user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
 
     def __repr__(self):
         return '<Boat %r>' % self.name
@@ -190,8 +192,8 @@ class Weather(db.Model):
     water_temperature = db.Column(db.Integer())
     wind_temperature = db.Column(db.Integer())
     visibility = db.Column(db.Integer())
-    dive_id = db.Column(db.Integer(), db.ForeignKey('dives.id'))
-    dive = db.relationship("Dive", uselist=False, backref="weathers", foreign_keys=[dive_id])  # noqa
+    #dive_id = db.Column(db.Integer(), db.ForeignKey('dives.id'))
+    dive = db.relationship("Dive", uselist=False, back_populates="weather")  # noqa
 
     def toJSON(self):
         return {

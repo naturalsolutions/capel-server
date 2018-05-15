@@ -17,7 +17,6 @@ CORS(app)
 app.config.from_object('conf')
 if os.environ.get('CAPEL_CONF', None):
     app.config.from_envvar('CAPEL_CONF')
-
 from model import (db, migrate, TypeDive)  # noqa
 db.init_app(app)
 migrate.init_app(app, db)

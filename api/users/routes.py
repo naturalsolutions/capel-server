@@ -1,6 +1,7 @@
 import sys
 import datetime
 from traceback import format_exception_only
+import traceback
 import re
 from flask import (Blueprint, jsonify, request, current_app)
 from sqlalchemy.exc import IntegrityError
@@ -50,7 +51,7 @@ def post_users():
         err_type, err_value, tb = sys.exc_info()
         current_app.logger.warn(
             ''.join(format_exception_only(err_type, err_value)))
-
+        traceback.print_exc()
         if err_type == 'TypeError':
             return jsonify(error='Invalid JSON.'), 400
 
@@ -82,16 +83,16 @@ def post_users():
         current_app.config['JWTSECRET'] + b'_emailconfirm').decode('utf-8')
 
     emailBody = EmailTemplate(
-        template=current_app.WELCOME_EMAIL_TEMPLATE,
+        template=current_app.config['WELCOME_EMAIL_TEMPLATE'],
         values={
-            'title': current_app.WELCOME_EMAIL_SUBJECT,
+            'title': current_app.config['WELCOME_EMAIL_SUBJECT'],
             'firstname': user.firstname,
             'serverUrl': current_app.config['SERVER_URL'],
             'token': emailToken
         }).render()
 
     sendmail('no-reply@natural-solutions.eu', user.email,
-             current_app.WELCOME_EMAIL_SUBJECT, emailBody)
+             current_app.config['WELCOME_EMAIL_SUBJECT'], emailBody)
 
     return jsonify(user.toJSON())
 
@@ -125,7 +126,7 @@ def users_validate_required(user):
                        'message': 'Password length must be >= ' +
                                   current_app.config['VALID_PWD_MIN_LEN']})
 
-    if not re.match(current_app.VALID_EMAIL_REGEX, user['email'], re.I):
+    if not re.match(current_app.config['VALID_EMAIL_REGEX'], user['email'], re.I):
         errors.append({'name': 'invalid_format', 'key': 'email'})
 
     for attr in ('lastname', 'firstname', 'address', 'phone'):
