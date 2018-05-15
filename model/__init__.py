@@ -42,6 +42,7 @@ class User(db.Model):
     lastname = db.Column(db.String(255), nullable=True)
     status = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)  # noqa
 
     boats = db.relationship('Boat', backref='users', lazy='dynamic')
     dives = db.relationship('Dive', backref='users', lazy='dynamic', foreign_keys='Dive.user_id')  # noqa

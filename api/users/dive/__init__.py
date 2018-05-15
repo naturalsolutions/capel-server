@@ -115,7 +115,9 @@ def extract_dive(
 def extract_dive_boats(uid: int, payload: Mapping) -> Sequence[Boat]:
     # current_app.logger.debug(payload['boats'])
     result = [
-        Boat.query.filter(Boat.name == boat['boat']).first()
+        # User.query.filter(User.boats.name == boat['boat']).first()
+        Boat.query.filter(
+            Boat.user_id == uid, Boat.name == boat['boat']).first()
         for boat in payload['boats'] if len(payload['boats']) > 0]
     # current_app.logger.debug(result)
     return result
