@@ -105,9 +105,9 @@ class Permit(db.Model):
 class TypeDive(db.Model):
     # {"id": 1, "name": "Baptême"},
     # {"id": 2, "name": "Exploration"},
-    # {"id": 3, "name": "Technique"},
-    # {"id": 4, "name": "Randinnée palmeée"},  # noqa
-    # {"id": 5, "name": "Apneée"}
+    # {"id": 4, "name": "Technique"},
+    # {"id": 8, "name": "Randonnée palmée"},
+    # {"id": 16, "name": "Apnée"}
     __tablename__ = 'typedives'
     __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer(), primary_key=True)
