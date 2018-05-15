@@ -101,6 +101,7 @@ ENV/
 .mypy_cache/
 
 .vscodedb
+.vscode
 credentials.py
 app_conf.py
 permits/
