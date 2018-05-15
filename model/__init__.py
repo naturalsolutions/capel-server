@@ -102,7 +102,11 @@ class Permit(db.Model):
 
 
 class TypeDive(db.Model):
-
+    # {"id": 1, "name": "Baptême"},
+    # {"id": 2, "name": "Exploration"},
+    # {"id": 3, "name": "Technique"},
+    # {"id": 4, "name": "Randinnée palmeée"},  # noqa
+    # {"id": 5, "name": "Apneée"}
     __tablename__ = 'typedives'
     __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer(), primary_key=True)
@@ -209,7 +213,6 @@ class DiveTypeDive(db.Model):
     divetype_id = db.Column(db.Integer(), db.ForeignKey('typedives.id', ondelete='CASCADE'))  # noqa
     dive_id = db.Column(db.Integer(), db.ForeignKey('dives.id', ondelete='CASCADE'))  # noqa
     divers = db.Column(db.Integer())
-
     dive = db.relationship('Dive')
     typeDive = db.relationship('TypeDive')
 
