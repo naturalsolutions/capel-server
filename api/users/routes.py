@@ -110,7 +110,7 @@ def getBoats(reqUser):
     boats = reqUser.boats.all()
     boatJsn = []
     for boat in boats:
-        boatJsn.append(boat.toJSON())
+        boatJsn.append(boat.json())
     return jsonify(boatJsn)
 
 

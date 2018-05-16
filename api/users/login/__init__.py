@@ -1,6 +1,6 @@
 from datetime import timedelta
 from flask import (Blueprint, jsonify, request, current_app)
-
+import traceback
 from model import User
 from auth import (
     generate_token, generate_id_token, make_digest, compare_digest)
@@ -22,6 +22,7 @@ def log_in():
     try:
         user = User.query.filter_by(username=request.json['username']).first()
     except Exception as e:
+        traceback.print_exc()
         return jsonify(error='Could not authenticate.'), 401
     if user is None:
         return jsonify(error='Not registered.'), 401
