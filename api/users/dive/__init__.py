@@ -29,7 +29,9 @@ def get_dives(reqUser):
     dives = reqUser.dives.all()
     diveJsn = []
     for dive in dives:
+        diveJsn['weather'] = diveJsn['weather'].json()
         diveJsn.append(dive.json())
+    current_app.logger.debug(diveJsn)
     return jsonify(diveJsn)
 
 
@@ -73,7 +75,7 @@ def post_dive(reqUser=None, id=id) -> Response:
 
 def extract_site(payload) -> DiveSite:
     # if payload['referenced'] == 'referenced':
-    #     dive_site = DiveSite.query.filter_by(referenced=payload['referenced'])\
+    #     dive_site = DiveSite.query.filter_by(referenced=payload['referenced'])\  # noqa
     #                               .first()
     # else:
     dive_site = DiveSite(
