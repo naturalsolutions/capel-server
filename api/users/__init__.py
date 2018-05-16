@@ -18,6 +18,7 @@ users = Blueprint('users', __name__)
 
 
 def init_app(app):
+    app.register_blueprint(users)
     app.register_blueprint(login.login)
     app.register_blueprint(me.me)
     app.register_blueprint(permit.permits)
