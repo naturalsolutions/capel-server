@@ -34,7 +34,7 @@ def get_dives(reqUser):
     return jsonify(diveJsn)
 
 
-@dives.route('/api/users/<int:id>/dive', methods=['POST'])
+@dives.route('/api/users/<int:id>/dives', methods=['POST'])
 @authenticate
 def post_dive(reqUser=None, id=id) -> Response:
     try:
