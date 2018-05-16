@@ -153,8 +153,8 @@ class Dive(db.Model):
     weather = db.relationship("Weather", uselist=False, backref="dives", foreign_keys=[weather_id])  # noqa
     boats = db.relationship('Boat', secondary='diveboats', backref="dive")
     typeDives = db.relationship("TypeDive", secondary="divetypedives",  backref="dive")  # noqa
-    # shop_id = db.Column(db.Integer(), db.ForeignKey('users.id')  # noqa
-    # shop = db.relationship("User", foreign_keys=[shop_id])
+    shop_id = db.Column(db.Integer(), db.ForeignKey('users.id')  # noqa
+    shop = db.relationship("User", foreign_keys=[shop_id])
     user = db.relationship("User", back_populates="dives")
 
 
