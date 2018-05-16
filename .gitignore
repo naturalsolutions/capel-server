@@ -112,4 +112,3 @@ dba.py
 model/structures.csv
 migrations/versions/
 migrations/README
-migrations/alembic.ini
