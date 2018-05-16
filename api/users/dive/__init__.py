@@ -34,7 +34,7 @@ def get_dives(reqUser):
     return jsonify(diveJsn)
 
 
-@dives.route('/api/users/<int:id>/dives', methods=['POST'])
+@dives.route('/api/users/<int:id>/dive', methods=['POST'])
 @authenticate
 def post_dive(reqUser=None, id=id) -> Response:
     try:
@@ -109,7 +109,7 @@ def extract_dive(
         latitude=payload['latlng']['lat'],
         longitude=payload['latlng']['lng'],
         boats=extract_dive_boats(uid, payload),
-        shop_id=User.query.get(payload['structure']['id']) if payload['isWithStructure'] else None  # noqa
+        shop=User.query.get(payload['structure']['id']) if payload['isWithStructure'] else None  # noqa
     )
 
 
