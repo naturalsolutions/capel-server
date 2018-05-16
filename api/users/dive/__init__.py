@@ -27,11 +27,7 @@ dives = Blueprint('dives', __name__)
 @authenticate
 def get_dives(reqUser):
     dives = reqUser.dives.all()
-    diveJsn = []
-    for dive in dives:
-        diveJsn.append(dive.json())
-    current_app.logger.debug(diveJsn)
-    return jsonify(diveJsn)
+    return jsonify([dive.json() for dive in dives])
 
 
 @dives.route('/api/users/<int:id>/dives', methods=['POST'])

@@ -157,13 +157,14 @@ class Dive(db.Model):
     latitude = db.Column(db.String())
     longitude = db.Column(db.String())
     weather_id = db.Column(db.Integer(), db.ForeignKey('weathers.id', ondelete='CASCADE'))  # noqa
+    weather = db.relationship("Weather", uselist=False, foreign_keys=[weather_id])  # noqa
 
     def json(self):
 
         return {
             'id': self.id,
             'divingDate': self.date,
-            'weather': Weather.query.get(self.weather_id),
+            'weather': Weather.query.get(self.weather_id).json(),
             'boats': [[boat.json()] for boat in self.boats],
             'times': [[json.dumps(time, default=str)] for time in self.times],
             'typeDives': [[d.json()] for d in self.dive_types],
