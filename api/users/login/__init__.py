@@ -1,5 +1,5 @@
 from datetime import timedelta
-from flask import (Blueprint, jsonify, request, make_response, current_app)
+from flask import (Blueprint, jsonify, request, current_app)
 
 from model import User
 from auth import (
@@ -53,4 +53,4 @@ def log_in():
         return jsonify(error='user_draft'), 403
 
     token = generate_id_token(user.id)
-    return jsonify(token=token.decode('utf-8'), profile=user.toJSON())
+    return jsonify(token=token.decode('utf-8'), profile=user.json())

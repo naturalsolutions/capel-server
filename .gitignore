@@ -112,3 +112,5 @@ dba.py
 .env
 model/structures.csv
 migrations/versions/
+migrations/README
+migrations/alembic.ini
