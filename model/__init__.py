@@ -157,15 +157,17 @@ class Dive(db.Model):
     # shop = db.relationship("User", foreign_keys=[shop_id])
     user = db.relationship("User", back_populates="dives")
 
+
+
     def toJSON(self):
 
         return {
             'id': self.id,
             'divingDate': self.divingDate,
             'weather': self.weather.toJSON(),
-            'boats': [[boat.toJSON()] for boat in self.boats],
-            'times': [[json.dumps(time, indent=4, sort_keys=True, default=str)] for time in self.times],  # noqa
-            'typeDives': [[typeDive.toJSON()] for typeDive in self.typeDives],
+            'boats': [boat.toJSON() for boat in self.boats],
+            'times': [[time[0].__str__(), time[1].__str__()] for time in self.times],  # noqa
+            'typeDives': [typeDive.toJSON() for typeDive in self.typeDives],
             'user': self.user.toJSON()
         }
 
