@@ -38,9 +38,9 @@ def log_in():
             current_app.config['JWTSECRET'] + b'_emailconfirm').decode('utf-8')
 
         emailBody = EmailTemplate(
-            template=current_app.REMINDER_EMAIL_TEMPLATE,
+            template=current_app.config['REMINDER_EMAIL_TEMPLATE'],
             values={
-                'title': current_app.REMINDER_EMAIL_SUBJECT,
+                'title': current_app.config['REMINDER_EMAIL_SUBJECT'],
                 'firstname': user.firstname,
                 'serverUrl': current_app.config['SERVER_URL'],
                 'token': emailToken
@@ -48,7 +48,7 @@ def log_in():
 
         sendmail(
             'no-reply@natural-solutions.eu', user.email,
-            current_app.REMINDER_EMAIL_SUBJECT, emailBody)
+            current_app.config['REMINDER_EMAIL_SUBJECT'], emailBody)
 
         return jsonify(error='user_draft'), 403
 
