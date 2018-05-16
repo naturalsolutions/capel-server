@@ -29,7 +29,9 @@ def get_dives(reqUser):
     dives = reqUser.dives.all()
     diveJsn = []
     for dive in dives:
+        diveJsn['weather'] = diveJsn['weather'].json()
         diveJsn.append(dive.json())
+    current_app.logger.debug(diveJsn)
     return jsonify(diveJsn)
 
 

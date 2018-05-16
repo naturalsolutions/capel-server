@@ -42,7 +42,7 @@ class User(db.Model):
     lastname = db.Column(db.String(255), nullable=True)
     status = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)  # noqa
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)  # noqa
 
     boats = db.relationship('Boat', backref='users', lazy='dynamic')
     dives = db.relationship('Dive', backref='users', lazy='dynamic', foreign_keys='Dive.user_id')  # noqa
@@ -162,10 +162,10 @@ class Dive(db.Model):
 
         return {
             'id': self.id,
-            'divingDate': self.dive_date,
+            'divingDate': self.date,
             'weather': Weather.query.get(self.weather_id),
             'boats': [[boat.json()] for boat in self.boats],
-            'times': [[json.dumps(time, default=str)] for time in self.dive_times],  # noqa
+            'times': [[json.dumps(time, default=str)] for time in self.times],
             'typeDives': [[d.json()] for d in self.dive_types],
             'user': self.user.json()
         }
