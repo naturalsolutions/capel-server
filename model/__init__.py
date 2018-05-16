@@ -1,9 +1,9 @@
 import re
+from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from geoalchemy2 import Geometry
 import json
-import datetime
 
 DUPLICATE_KEY_ERROR_REGEX = r'DETAIL:\s+Key \((?P<duplicate_key>.*)\)=\(.*\) already exists.'  # noqa
 
@@ -25,7 +25,6 @@ def unique_constraint_key(error):
     return m.group('duplicate_key')
 
 
-# Define the User data model. Make sure to add the flask_user.UserMixin !!
 class User(db.Model):
 
     __tablename__ = 'users'
@@ -44,8 +43,9 @@ class User(db.Model):
     status = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)  # noqa
+
     boats = db.relationship('Boat', backref='users', lazy='dynamic')
-    dives = db.relationship('Dive', backref='users', lazy='dynamic')
+    dives = db.relationship('Dive', backref='users', lazy='dynamic', foreign_keys='Dive.user_id')  # noqa
 
     def __repr__(self):
         return '<User %r>' % self.username
@@ -61,8 +61,7 @@ class User(db.Model):
             'firstname': self.firstname,
             'lastname': self.lastname,
             'status': self.status,
-            'created_at': self.created_at,
-            'updated_at': self.updated_at
+            'createdAt': self.created_at
         }
 
 
@@ -74,7 +73,7 @@ class Boat(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(50), nullable=False)
     matriculation = db.Column(db.Unicode(255), unique=True)
-    user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
 
     def __repr__(self):
         return '<Boat %r>' % self.name
@@ -95,17 +94,15 @@ class Permit(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(50), nullable=False, unique=True)
     url = db.Column(db.Unicode(255))
-    validity = db.Column(db.Unicode(255))
+    status = db.Column(db.Unicode(255))
     created_at = db.Column(db.DateTime)
     updated_at = db.Column(db.DateTime)
-    endAt = db.Column(db.DateTime)
+    end_at = db.Column(db.DateTime)
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))  # noqa
-    divesite_id = db.Column(db.Integer(), db.ForeignKey('divesites.id', ondelete='CASCADE'))  # noqa
+    site_id = db.Column(db.Integer(), db.ForeignKey('divesites.id', ondelete='CASCADE'))  # noqa
 
 
-# Define the TypeDive data model
 class TypeDive(db.Model):
-
     # {"id": 1, "name": "Baptême"},
     # {"id": 2, "name": "Exploration"},
     # {"id": 4, "name": "Technique"},
@@ -114,7 +111,7 @@ class TypeDive(db.Model):
     __tablename__ = 'typedives'
     __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer(), primary_key=True)
-    name = db.Column(db.Unicode(255))
+    name = db.Column(db.Unicode(255), nullable=False, unique=True)
 
     def __init__(self, name):
         self.name = name
@@ -129,7 +126,6 @@ class TypeDive(db.Model):
         }
 
 
-# Define the DiveSite data model
 class DiveSite(db.Model):
 
     __tablename__ = 'divesites'
@@ -137,55 +133,53 @@ class DiveSite(db.Model):
 
     id = db.Column(db.Integer(), primary_key=True)
     referenced = db.Column(db.String)
-    # Relationships
     geom = db.Column(Geometry('POLYGON'))
 
 
-# Define the Dive data model
 class Dive(db.Model):
 
     __tablename__ = 'dives'
     __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer(), primary_key=True)
-    divingDate = db.Column(db.DateTime)
+    date = db.Column(db.DateTime)
     times = db.Column(db.ARRAY(db.Time, dimensions=2))
+
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))  # noqa
+    user = db.relationship('User', back_populates='dives', foreign_keys='Dive.user_id')  # noqa
+    shop_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
+    shop = db.relationship("User", foreign_keys='Dive.shop_id')
+
+    boats = db.relationship('Boat', secondary='diveboats', backref='dive')
+    dive_types = db.relationship('TypeDive', secondary='divetypedives',  backref='dive')  # noqa
+
     site_id = db.Column(db.Integer(), db.ForeignKey('divesites.id', ondelete='CASCADE'))  # noqa
     latitude = db.Column(db.String())
     longitude = db.Column(db.String())
     weather_id = db.Column(db.Integer(), db.ForeignKey('weathers.id', ondelete='CASCADE'))  # noqa
-    weather = db.relationship("Weather", uselist=False, backref="dives", foreign_keys=[weather_id])  # noqa
-    boats = db.relationship('Boat', secondary='diveboats', backref="dive")
-    typeDives = db.relationship("TypeDive", secondary="divetypedives",  backref="dive")  # noqa
-    shop_id = db.Column(db.Integer(), db.ForeignKey('users.id'))  # noqa
-    shop = db.relationship("User", foreign_keys=[shop_id])
-    user = db.relationship("User", back_populates="dives")
-
-
-
+    weather = db.relationship("Weather", uselist=False, foreign_keys=[weather_id])  # noqa
     def json(self):
 
         return {
             'id': self.id,
-            'divingDate': self.divingDate,
+            'divingDate': self.date,
             'weather': self.weather.json(),
-            'boats': [boat.json() for boat in self.boats],
-            'times': [[time[0].__str__(), time[1].__str__()] for time in self.times],  # noqa
-            'typeDives': [typeDive.json() for typeDive in self.typeDives],
+            'boats': [[boat.json()] for boat in self.boats],
+            'times': [[time[0].__str__(), time[1].__str__()] for time in self.times],  # noq
+            'typeDives': [[d.json()] for d in self.dive_types],
+            'user': self.user.json()
         }
 
 
-# Define the Weather data model
 class Weather(db.Model):
 
     __tablename__ = 'weathers'
     __table_args__ = {'extend_existing': True}
 
-    def __init__(self, sky, seaState, wind,
+    def __init__(self, sky, sea, wind,
                  water_temperature, wind_temperature, visibility):
         self.sky = sky
-        self.seaState = seaState
+        self.sea = sea
         self.wind = wind
         self.water_temperature = water_temperature
         self.wind_temperature = wind_temperature
@@ -193,7 +187,7 @@ class Weather(db.Model):
 
     id = db.Column(db.Integer(), primary_key=True)
     sky = db.Column(db.String(255))
-    seaState = db.Column(db.String(255))
+    sea = db.Column(db.String(255))
     wind = db.Column(db.String(255))
     water_temperature = db.Column(db.Integer())
     wind_temperature = db.Column(db.Integer())
@@ -203,7 +197,7 @@ class Weather(db.Model):
         return {
             'id': self.id,
             'sky': self.sky,
-            'seaState': self.seaState,
+            'seaState': self.sea,
             'wind': self.wind,
             'water_temperature': self.water_temperature,
             'wind_temperature': self.wind_temperature,
@@ -219,13 +213,11 @@ class DiveTypeDive(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     divetype_id = db.Column(db.Integer(), db.ForeignKey('typedives.id', ondelete='CASCADE'))  # noqa
     dive_id = db.Column(db.Integer(), db.ForeignKey('dives.id', ondelete='CASCADE'))  # noqa
-    nbrDivers = db.Column(db.Integer())
+    divers = db.Column(db.Integer())
+    dive = db.relationship('Dive')
+    typeDive = db.relationship('TypeDive')
 
-    dive = db.relationship("Dive")
-    typeDive = db.relationship("TypeDive")
 
-
-# Define the DiveBoat data model
 class DiveBoat(db.Model):
 
     __tablename__ = 'diveboats'
@@ -235,5 +227,5 @@ class DiveBoat(db.Model):
     dive_id = db.Column(db.Integer(), db.ForeignKey('dives.id', ondelete='CASCADE'))  # noqa
     boat_id = db.Column(db.Integer(), db.ForeignKey('boats.id', ondelete='CASCADE'))  # noqa
 
-    dive = db.relationship("Dive")
-    boat = db.relationship("Boat")
+    dive = db.relationship('Dive')
+    boat = db.relationship('Boat')
