@@ -3,7 +3,7 @@ from datetime import timedelta
 
 
 WEBAPP_URL = 'http://149.202.44.29/capel-client'
-SERVER_URL = 'https://capel-beta.herokuapp.com/'
+SERVER_URL = 'https://capel-staging.herokuapp.com/'
 
 WELCOME_EMAIL_SUBJECT = 'Bienvenue sur CAPEL'
 WELCOME_EMAIL_TEMPLATE = 'assets/welcome_email_template.html'
