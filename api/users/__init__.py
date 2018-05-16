@@ -14,15 +14,32 @@ from auth import (make_digest, generate_token, authenticate)
 from . import login, me, permit, dive
 
 
-users = Blueprint('users', __name__)
-
 
 def init_app(app):
     app.register_blueprint(login.login)
     app.register_blueprint(me.me)
+    app.register_blueprint(users)
     app.register_blueprint(permit.permits)
     permit.init_app(app)
     app.register_blueprint(dive.dives)
+
+users = Blueprint('users', __name__)
+
+@users.route('/api/users', methods=['GET'])
+@authenticate
+def getUsers(reqUser):
+    users = User.query.all()
+    return jsonify([user.json() for user in users])
+
+
+@users.route('/api/users/boats')
+@authenticate
+def getBoats(reqUser):
+    boats = reqUser.boats.all()
+    boatJsn = []
+    for boat in boats:
+        boatJsn.append(boat.json())
+    return jsonify(boatJsn)
 
 
 @users.route('/api/users', methods=['POST'])
@@ -106,22 +123,6 @@ def post_users():
 
     return jsonify(user.json())
 
-
-@users.route('/api/users', methods=['GET'])
-@authenticate
-def getUsers(reqUser):
-    users = User.query.all()
-    return jsonify([user.json() for user in users])
-
-
-@users.route('/api/users/boats')
-@authenticate
-def getBoats(reqUser):
-    boats = reqUser.boats.all()
-    boatJsn = []
-    for boat in boats:
-        boatJsn.append(boat.json())
-    return jsonify(boatJsn)
 
 
 def users_validate_required(user):
