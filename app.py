@@ -6,7 +6,7 @@ from flask_cors import CORS
 
 
 app = Flask(__name__)
-CORS(app)
+cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 app.config.from_object('conf')
 if os.environ.get('CAPEL_CONF', None):

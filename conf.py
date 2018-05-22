@@ -13,11 +13,7 @@ PERMIT_TEMPLATE = 'assets/reglement_2017.pdf'
 PERMITS_DIR = 'permits'
 SENDGRID_API_KEY = os.environ.get('SENDGRID_KEY')
 WEBAPP_URL = 'http://149.202.44.29/capel-client'
-SERVER_URL = 'https://capel-beta.herokuapp.com/'
-
-
-WEBAPP_URL = 'http://149.202.44.29/capel-client'
-SERVER_URL = 'https://capel-beta.herokuapp.com/'
+SERVER_URL = 'https://capel-beta.herokuapp.com'
 
 WELCOME_EMAIL_SUBJECT = 'Bienvenue sur CAPEL'
 WELCOME_EMAIL_TEMPLATE = 'assets/welcome_email_template.html'
