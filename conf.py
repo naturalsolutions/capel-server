@@ -3,7 +3,7 @@ from datetime import timedelta
 
 
 
-SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+SQLALCHEMY_DATABASE_URI = f'postgresql://postgres:@localhost/capel'
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 JWTSECRET = b'SUPER_SECRET'
 JWT_AUTH_TYPE = 'Bearer'
@@ -11,7 +11,7 @@ JWT_ID_TK_EXP = timedelta(seconds=86400)
 VALID_PWD_MIN_LEN = 6
 PERMIT_TEMPLATE = 'assets/reglement_2017.pdf'
 PERMITS_DIR = 'permits'
-SENDGRID_API_KEY = os.environ.get('SENDGRID_KEY')
+SENDGRID_API_KEY = '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'
 WEBAPP_URL = 'http://149.202.44.29/capel-client'
 SERVER_URL = 'https://capel-beta.herokuapp.com/'
 
