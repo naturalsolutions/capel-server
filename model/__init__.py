@@ -3,9 +3,13 @@ from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from geoalchemy2 import Geometry
+from geoalchemy2 import functions
+from sqlalchemy import text
 import json
 
-DUPLICATE_KEY_ERROR_REGEX = r'DETAIL:\s+Key \((?P<duplicate_key>.*)\)=\(.*\) already exists.'  # noqa
+import shapely
+from shapely import *
+DUPLICATE_KEY_ERROR_REGEX = r'DETAIL:\s+Key \((?P<duplicate_key>.*)\)=\(.*\) already exists.'
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -42,10 +46,10 @@ class User(db.Model):
     lastname = db.Column(db.String(255), nullable=True)
     status = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)  # noqa
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     boats = db.relationship('Boat', backref='users', lazy='dynamic')
-    dives = db.relationship('Dive', backref='users', lazy='dynamic', foreign_keys='Dive.user_id')  # noqa
+    dives = db.relationship('Dive', backref='users', lazy='dynamic', foreign_keys='Dive.user_id')
 
     def __repr__(self):
         return '<User %r>' % self.username
@@ -98,8 +102,8 @@ class Permit(db.Model):
     created_at = db.Column(db.DateTime)
     updated_at = db.Column(db.DateTime)
     end_at = db.Column(db.DateTime)
-    user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))  # noqa
-    site_id = db.Column(db.Integer(), db.ForeignKey('divesites.id', ondelete='CASCADE'))  # noqa
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
+    site_id = db.Column(db.Integer(), db.ForeignKey('divesites.id', ondelete='CASCADE'))
 
 
 class TypeDive(db.Model):
@@ -132,8 +136,63 @@ class DiveSite(db.Model):
     __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String())
     referenced = db.Column(db.String)
-    geom = db.Column(Geometry('POLYGON'))
+    geom_mp = db.Column(Geometry('MULTIPOINT'))
+    geom_poly = db.Column(Geometry('MultiPolygon'))
+    latitude = db.Column(db.String())
+    longitude = db.Column(db.String())
+    category = db.Column(db.String())
+    status = db.Column(db.String())
+
+    def __init__(self, id, name, referenced, longitude, latitude, geom_poly, geom_mp):
+        self.id = id
+        self.name = name
+        self.referenced = referenced
+        self.latitude = latitude
+        self.longitude = longitude
+        self.geom_mp = geom_mp
+        self.geom_poly = geom_poly
+
+
+    def all_sites():
+
+        sql = text("select id, name, referenced, latitude, longitude, ST_AsGeoJSON(geom_poly) as geom_poly, ST_AsGeoJSON(geom_mp) as geom_mp from divesites where category = 'site'")
+        result = db.engine.execute(sql)
+        diveSites = []
+        for row in result:
+            diveSites.append(DiveSite(row['id'],row['name'], row['referenced'], row['latitude'], row['longitude'], row['geom_poly'], row['geom_mp']))
+        return diveSites
+
+    def all_hearts():
+
+        sql = text("select id, name, referenced, latitude, longitude, ST_AsGeoJSON(geom_poly) as geom_poly, ST_AsGeoJSON(geom_mp) as geom_mp from divesites where category = 'coeur'")
+        result = db.engine.execute(sql)
+        diveSites = []
+        for row in result:
+            diveSites.append(DiveSite(row['id'],row['name'], row['referenced'], row['latitude'], row['longitude'], row['geom_poly'], row['geom_mp']))
+        return diveSites
+
+    def json(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'referenced': self.referenced,
+            'geom_mp': self.geom_mp,
+            'geom_poly': self.geom_poly,
+            'latitude': self.latitude,
+            'longitude': self.longitude
+        }
+
+    def cusJson(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'referenced': self.referenced,
+            'latitude': self.latitude,
+            'longitude': self.longitude
+        }
+
 
 
 class Dive(db.Model):
@@ -145,19 +204,21 @@ class Dive(db.Model):
     date = db.Column(db.DateTime)
     times = db.Column(db.ARRAY(db.Time, dimensions=2))
 
-    user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))  # noqa
-    user = db.relationship('User', back_populates='dives', foreign_keys='Dive.user_id')  # noqa
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
+    user = db.relationship('User', back_populates='dives', foreign_keys='Dive.user_id')
     shop_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
     shop = db.relationship("User", foreign_keys='Dive.shop_id')
 
     boats = db.relationship('Boat', secondary='diveboats', backref='dive')
-    dive_types = db.relationship('TypeDive', secondary='divetypedives',  backref='dive')  # noqa
+    dive_types = db.relationship('TypeDive', secondary='divetypedives',  backref='dive')
 
-    site_id = db.Column(db.Integer(), db.ForeignKey('divesites.id', ondelete='CASCADE'))  # noqa
+    site_id = db.Column(db.Integer(), db.ForeignKey('divesites.id', ondelete='CASCADE'))
+    dive_site = db.relationship("DiveSite", uselist=False, foreign_keys=[site_id])
+
     latitude = db.Column(db.String())
     longitude = db.Column(db.String())
-    weather_id = db.Column(db.Integer(), db.ForeignKey('weathers.id', ondelete='CASCADE'))  # noqa
-    weather = db.relationship("Weather", uselist=False, foreign_keys=[weather_id])  # noqa
+    weather_id = db.Column(db.Integer(), db.ForeignKey('weathers.id', ondelete='CASCADE'))
+    weather = db.relationship("Weather", uselist=False, foreign_keys=[weather_id])
     def json(self):
 
         return {
@@ -165,9 +226,10 @@ class Dive(db.Model):
             'divingDate': self.date,
             'weather': self.weather.json(),
             'boats': [[boat.json()] for boat in self.boats],
-            'times': [[time[0].__str__(), time[1].__str__()] for time in self.times],  # noq
+            'times': [[time[0].__str__(), time[1].__str__()] for time in self.times],
             'typeDives': [[d.json()] for d in self.dive_types],
-            'user': self.user.json()
+            'user': self.user.json(),
+            'dive_site': self.dive_site.cusJson()
         }
 
 
@@ -211,8 +273,8 @@ class DiveTypeDive(db.Model):
     __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer(), primary_key=True)
-    divetype_id = db.Column(db.Integer(), db.ForeignKey('typedives.id', ondelete='CASCADE'))  # noqa
-    dive_id = db.Column(db.Integer(), db.ForeignKey('dives.id', ondelete='CASCADE'))  # noqa
+    divetype_id = db.Column(db.Integer(), db.ForeignKey('typedives.id', ondelete='CASCADE'))
+    dive_id = db.Column(db.Integer(), db.ForeignKey('dives.id', ondelete='CASCADE'))
     divers = db.Column(db.Integer())
     dive = db.relationship('Dive')
     typeDive = db.relationship('TypeDive')
@@ -224,8 +286,8 @@ class DiveBoat(db.Model):
     __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer(), primary_key=True)
-    dive_id = db.Column(db.Integer(), db.ForeignKey('dives.id', ondelete='CASCADE'))  # noqa
-    boat_id = db.Column(db.Integer(), db.ForeignKey('boats.id', ondelete='CASCADE'))  # noqa
+    dive_id = db.Column(db.Integer(), db.ForeignKey('dives.id', ondelete='CASCADE'))
+    boat_id = db.Column(db.Integer(), db.ForeignKey('boats.id', ondelete='CASCADE'))
 
     dive = db.relationship('Dive')
     boat = db.relationship('Boat')

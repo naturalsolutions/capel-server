@@ -13,11 +13,7 @@ PERMIT_TEMPLATE = 'assets/reglement_2017.pdf'
 PERMITS_DIR = 'permits'
 SENDGRID_API_KEY = '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'
 WEBAPP_URL = 'http://149.202.44.29/capel-client'
-SERVER_URL = 'https://capel-beta.herokuapp.com/'
-
-
-WEBAPP_URL = 'http://149.202.44.29/capel-client'
-SERVER_URL = 'https://capel-beta.herokuapp.com/'
+SERVER_URL = 'https://capel-staging.herokuapp.com'
 
 WELCOME_EMAIL_SUBJECT = 'Bienvenue sur CAPEL'
 WELCOME_EMAIL_TEMPLATE = 'assets/welcome_email_template.html'
