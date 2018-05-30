@@ -11,7 +11,7 @@ from mail import EmailTemplate, sendmail
 from model import (
     db, User, Boat, unique_constraint_key, not_null_constraint_key)
 from auth import (make_digest, generate_token, authenticate)
-from . import login, me, permit, dive
+from . import login, me, permit, dive, divesite
 
 
 
@@ -19,6 +19,7 @@ def init_app(app):
     app.register_blueprint(login.login)
     app.register_blueprint(me.me)
     app.register_blueprint(users)
+    app.register_blueprint(divesite.divesite)
     app.register_blueprint(permit.permits)
     permit.init_app(app)
     app.register_blueprint(dive.dives)

@@ -2,7 +2,6 @@ import os
 from datetime import timedelta
 
 
-
 SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 JWTSECRET = b'SUPER_SECRET'

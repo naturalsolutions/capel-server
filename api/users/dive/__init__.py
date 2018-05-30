@@ -26,13 +26,15 @@ dives = Blueprint('dives', __name__)
 @dives.route('/api/users/dives', methods=['GET'])
 @authenticate
 def get_dives(reqUser):
-    dives = reqUser.dives.all()
-    diveJsn = []
-    for dive in dives:
-        diveJsn.append(dive.json())
-    current_app.logger.debug(diveJsn)
-    return jsonify(diveJsn)
+    return jsonify([dive.json() for dive in reqUser.dives.all()])
 
+@dives.route('/api/users/dives/<int:id>', methods=['GET'])
+def get_dive(id=id):
+    dive = Dive.query.get(id)
+    if dive:
+        return jsonify(dive.json())
+    else:
+        return 'error not found'
 
 @dives.route('/api/users/<int:id>/dives', methods=['POST'])
 @authenticate
@@ -46,8 +48,7 @@ def post_dive(reqUser=None, id=id) -> Response:
         db.session.commit()
 
         dive_site = extract_site(payload)
-        db.session.add(dive_site)
-        db.session.commit()
+
 
         dive = extract_dive(dive_site, weather, id, payload)
         db.session.add(dive)
@@ -77,13 +78,7 @@ def extract_site(payload) -> DiveSite:
     #     dive_site = DiveSite.query.filter_by(referenced=payload['referenced'])\  # noqa
     #                               .first()
     # else:
-    dive_site = DiveSite(
-        referenced=payload['referenced'],
-        geom=db.session.query(
-            func.ST_Expand(cast(
-                func.ST_GeogFromText(
-                    f"POINT({str(payload['latlng']['lng'])} {str(payload['latlng']['lat'])})"),  # noqa
-            geoalchemy2.types.Geometry(geometry_type='POINT', srid=4326)), 1)).one())  # noqa
+    dive_site = DiveSite.query.get(payload['divesite_id'])
     return dive_site
 
 
@@ -106,8 +101,8 @@ def extract_dive(
             datetime.strptime(t['endTime'], '%H:%M').time()
         ] for t in payload['times']],
         weather_id=weather.id,
-        latitude=payload['latlng']['lat'],
-        longitude=payload['latlng']['lng'],
+        #latitude=payload['latlng']['lat'],
+        #longitude=payload['latlng']['lng'],
         boats=extract_dive_boats(uid, payload),
         shop=User.query.get(payload['structure']['id']) if payload['isWithStructure'] else None  # noqa
     )
