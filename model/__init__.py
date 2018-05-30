@@ -3,12 +3,8 @@ from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from geoalchemy2 import Geometry
-from geoalchemy2 import functions
 from sqlalchemy import text
-import json
 
-import shapely
-from shapely import *
 DUPLICATE_KEY_ERROR_REGEX = r'DETAIL:\s+Key \((?P<duplicate_key>.*)\)=\(.*\) already exists.'
 
 db = SQLAlchemy()
