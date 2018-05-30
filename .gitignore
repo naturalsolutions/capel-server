@@ -105,12 +105,9 @@ ENV/
 credentials.py
 app_conf.py
 permits/
-migrations/__pycache__
 .idea/
 dba.py
 .venv/
 .env
 model/structures.csv
-migrations/versions/
-migrations/README
-migrations/alembic.ini
+
