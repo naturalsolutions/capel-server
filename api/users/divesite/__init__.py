@@ -14,3 +14,7 @@ def getDiveSites():
 def getDiveHearts():
     return jsonify([diveSite.json() for diveSite in DiveSite.all_hearts()])
 
+@divesite.route('/api/users/divehearts/checkpoint', methods=['POST'])
+def get_hearts():
+    payload = request.get_json()
+    return jsonify([diveSite.cusJson() for diveSite in DiveSite.getHeartsByPoint(str(payload['lat']), str(payload['lng']))])

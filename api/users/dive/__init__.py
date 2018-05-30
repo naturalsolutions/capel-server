@@ -36,7 +36,6 @@ def get_dive(id=id):
     else:
         return 'error not found'
 
-
 @dives.route('/api/users/<int:id>/dives', methods=['POST'])
 @authenticate
 def post_dive(reqUser=None, id=id) -> Response:
@@ -102,8 +101,8 @@ def extract_dive(
             datetime.strptime(t['endTime'], '%H:%M').time()
         ] for t in payload['times']],
         weather_id=weather.id,
-        latitude=payload['latlng']['lat'],
-        longitude=payload['latlng']['lng'],
+        #latitude=payload['latlng']['lat'],
+        #longitude=payload['latlng']['lng'],
         boats=extract_dive_boats(uid, payload),
         shop=User.query.get(payload['structure']['id']) if payload['isWithStructure'] else None  # noqa
     )

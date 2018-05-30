@@ -157,20 +157,74 @@ class DiveSite(db.Model):
 
     def all_sites():
 
-        sql = text("select id, name, referenced, latitude, longitude, ST_AsGeoJSON(geom_poly) as geom_poly, ST_AsGeoJSON(geom_mp) as geom_mp from divesites where category = 'site'")
+        sql = text("select id, "
+                   "name, "
+                   "referenced, "
+                   "latitude, "
+                   "longitude, "
+                   "ST_AsGeoJSON(geom_poly) as geom_poly, "
+                   "ST_AsGeoJSON(geom_mp) as geom_mp"
+                   " from divesites "
+                   "where category = 'site'")
         result = db.engine.execute(sql)
         diveSites = []
         for row in result:
-            diveSites.append(DiveSite(row['id'],row['name'], row['referenced'], row['latitude'], row['longitude'], row['geom_poly'], row['geom_mp']))
+            diveSites.append(DiveSite(row['id'],
+                                      row['name'],
+                                      row['referenced'],
+                                      row['latitude'],
+                                      row['longitude'],
+                                      row['geom_poly'],
+                                      row['geom_mp'])
+                             )
         return diveSites
 
     def all_hearts():
 
-        sql = text("select id, name, referenced, latitude, longitude, ST_AsGeoJSON(geom_poly) as geom_poly, ST_AsGeoJSON(geom_mp) as geom_mp from divesites where category = 'coeur'")
+        sql = text("select id, "
+                   "name, "
+                   "referenced, "
+                   "latitude, "
+                   "longitude, "
+                   "ST_AsGeoJSON(geom_poly) as geom_poly, "
+                   "ST_AsGeoJSON(geom_mp) as geom_mp"
+                   " from divesites "
+                   "where category = 'coeur'")
         result = db.engine.execute(sql)
         diveSites = []
         for row in result:
-            diveSites.append(DiveSite(row['id'],row['name'], row['referenced'], row['latitude'], row['longitude'], row['geom_poly'], row['geom_mp']))
+            diveSites.append(DiveSite(row['id'],
+                                      row['name'],
+                                      row['referenced'],
+                                      row['latitude'],
+                                      row['longitude'],
+                                      row['geom_poly'],
+                                      row['geom_mp'])
+                             )
+        return diveSites
+
+    def getHeartsByPoint(latitude, longitude):
+
+        sql = text("select id, "
+                   "name, "
+                   "referenced, "
+                   "latitude, "
+                   "longitude, "
+                   "ST_AsGeoJSON(geom_poly) as geom_poly, "
+                   "ST_AsGeoJSON(geom_mp) as geom_mp"
+                   " from divesites "
+                   "where category = 'coeur' and  st_contains(geom_poly, ST_GeomFromText('POINT("+longitude+ " "+latitude+")', 4326))")
+        result = db.engine.execute(sql)
+        diveSites = []
+        for row in result:
+            diveSites.append(DiveSite(row['id'],
+                                      row['name'],
+                                      row['referenced'],
+                                      row['latitude'],
+                                      row['longitude'],
+                                      row['geom_poly'],
+                                      row['geom_mp'])
+                             )
         return diveSites
 
     def json(self):
@@ -239,7 +293,7 @@ class Weather(db.Model):
     __table_args__ = {'extend_existing': True}
 
     def __init__(self, sky, sea, wind,
-                 water_temperature, wind_temperature, visibility):
+                 water_temperature = 0, wind_temperature = 0, visibility = 0):
         self.sky = sky
         self.sea = sea
         self.wind = wind
