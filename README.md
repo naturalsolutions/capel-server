@@ -162,3 +162,16 @@ heroku config:set WEB_CONCURRENCY=3
 heroku open
 heroku logs -t
 ```
+#### To script
+```sh
+heroku run python -app <app name>
+import os
+db = os.environ.get('DATABASE_URL')
+
+export DATABASE_URL = db
+export FLASK_APP=app.py
+flask db migrate
+git push heroku master
+
+PS: import geoalchemy2 in last migrate version
+ ```
