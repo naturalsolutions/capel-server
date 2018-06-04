@@ -26,7 +26,7 @@ dives = Blueprint('dives', __name__)
 @dives.route('/api/users/dives', methods=['GET'])
 @authenticate
 def get_dives(reqUser):
-    return jsonify([dive.json() for dive in reqUser.dives.all()])
+    return jsonify([dive.json() for dive in reqUser.dives.order_by((Dive.date)).all()])
 
 @dives.route('/api/users/dives/<int:id>', methods=['GET'])
 def get_dive(id=id):

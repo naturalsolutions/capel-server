@@ -1,7 +1,8 @@
 from datetime import timedelta
 from flask import (Blueprint, jsonify, request, current_app)
-
-from model import User
+import string
+import random
+from model import (db, User)
 from auth import (
     generate_token, generate_id_token, make_digest, compare_digest)
 from mail import EmailTemplate, sendmail
@@ -54,3 +55,37 @@ def log_in():
 
     token = generate_id_token(user.id)
     return jsonify(token=token.decode('utf-8'), profile=user.json())
+@login.route('/api/users/<email>/password/recover', methods=['GET'])
+def recover(email):
+    try:
+        print(email)
+        user = User.query.filter_by(username=email).first()
+    except Exception as e:
+        return jsonify(error='Could not verify.'), 401
+    if user is None:
+        return jsonify(error='Not registered.'), 401
+    else:
+        new_pass = id_generator()
+        User.query. \
+            filter(User.id == user.id). \
+            update({User.password:make_digest(new_pass)})
+        db.session.commit()
+        emailBody = EmailTemplate(
+            template=current_app.config['RECOVER_PASSWORD_TEMPLATE'],
+            values={
+                'title': current_app.config['REMINDER_EMAIL_SUBJECT'],
+                'firstname': user.firstname,
+                'password': new_pass,
+                'serverUrl': current_app.config['SERVER_URL']
+            }).render()
+
+        sendmail(
+            'no-reply@natural-solutions.eu', user.email,
+            current_app.config['REMINDER_EMAIL_SUBJECT'], emailBody)
+        print(new_pass)
+        return jsonify(new_pass)
+
+
+
+def id_generator(size=8, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))

@@ -16,6 +16,7 @@ SERVER_URL = 'https://capel-staging.herokuapp.com'
 
 WELCOME_EMAIL_SUBJECT = 'Bienvenue sur CAPEL'
 WELCOME_EMAIL_TEMPLATE = 'assets/welcome_email_template.html'
+RECOVER_PASSWORD_TEMPLATE = 'assets/recover_password_template.html'
 REMINDER_EMAIL_SUBJECT = 'Valider votre compte'
 REMINDER_EMAIL_TEMPLATE = WELCOME_EMAIL_TEMPLATE
 

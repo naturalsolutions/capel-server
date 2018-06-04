@@ -110,4 +110,5 @@ dba.py
 .venv/
 .env
 model/structures.csv
+shell.sh
 
