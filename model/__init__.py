@@ -60,6 +60,9 @@ class User(db.Model):
             'email': self.email,
             'category': self.category,
             'address': self.address,
+            'zip': self.zip,
+            'company': self.company,
+            'country': self.country,
             'phone': self.phone,
             'firstname': self.firstname,
             'lastname': self.lastname,
@@ -263,7 +266,7 @@ class Dive(db.Model):
     shop = db.relationship("User", foreign_keys='Dive.shop_id')
 
     boats = db.relationship('Boat', secondary='diveboats', backref='dive')
-    dive_types = db.relationship('TypeDive', secondary='divetypedives',  backref='dive')
+    #dive_types = db.relationship('TypeDive', secondary='divetypedives',  backref='dive')
 
     site_id = db.Column(db.Integer(), db.ForeignKey('divesites.id', ondelete='CASCADE'))
     dive_site = db.relationship("DiveSite", uselist=False, foreign_keys=[site_id])
@@ -272,17 +275,22 @@ class Dive(db.Model):
     longitude = db.Column(db.String())
     weather_id = db.Column(db.Integer(), db.ForeignKey('weathers.id', ondelete='CASCADE'))
     weather = db.relationship("Weather", uselist=False, foreign_keys=[weather_id])
+
+    divetypedives = db.relationship('DiveTypeDive', backref='users', lazy='dynamic', foreign_keys='DiveTypeDive.dive_id')
+
+
     def json(self):
 
         return {
             'id': self.id,
             'divingDate': self.date,
             'weather': self.weather.json(),
-            'boats': [[boat.json()] for boat in self.boats],
+            'boats': [boat.json() for boat in self.boats],
             'times': [[time[0].__str__(), time[1].__str__()] for time in self.times],
-            'typeDives': [[d.json()] for d in self.dive_types],
+            #'typeDives': [d.json() for d in self.dive_types],
             'user': self.user.json(),
-            'dive_site': self.dive_site.cusJson()
+            'dive_site': self.dive_site.cusJson(),
+            'divetypedives': [divetypedive.json() for divetypedive in self.divetypedives]
         }
 
 
@@ -331,6 +339,13 @@ class DiveTypeDive(db.Model):
     divers = db.Column(db.Integer())
     dive = db.relationship('Dive')
     typeDive = db.relationship('TypeDive')
+
+    def json(self):
+        return {
+            'id': self.id,
+            'typeDive': self.typeDive.json(),
+            'divers': self.divers
+        }
 
 
 class DiveBoat(db.Model):

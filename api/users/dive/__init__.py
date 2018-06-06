@@ -3,9 +3,7 @@ from traceback import format_exception_only
 from datetime import datetime
 from typing import Mapping, Sequence
 from flask import (Blueprint, jsonify, request, Response, current_app)
-from sqlalchemy import func, cast
-import geoalchemy2
-
+import traceback
 from model import (
     db, User, Boat, Weather, DiveSite, TypeDive, DiveTypeDive, Dive)
 from auth import authenticate
@@ -27,6 +25,21 @@ dives = Blueprint('dives', __name__)
 @authenticate
 def get_dives(reqUser):
     return jsonify([dive.json() for dive in reqUser.dives.order_by((Dive.date)).all()])
+
+@dives.route('/api/users/dives/<int:id>', methods=['DELETE'])
+@authenticate
+def delete_dive(reqUser, id=id):
+    try:
+        dive = Dive.query.filter_by(id=id).delete()
+        db.session.commit()
+        if dive:
+            return jsonify('dive has been deleted')
+        else:
+            return jsonify('problem')
+    except Exception as e:
+        traceback.print_exc()
+
+
 
 @dives.route('/api/users/dives/<int:id>', methods=['GET'])
 def get_dive(id=id):
