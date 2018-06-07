@@ -215,7 +215,8 @@ class DiveSite(db.Model):
                    "ST_AsGeoJSON(geom_poly) as geom_poly, "
                    "ST_AsGeoJSON(geom_mp) as geom_mp"
                    " from divesites "
-                   "where category = 'coeur' and  st_contains(geom_poly, ST_GeomFromText('POINT("+longitude+ " "+latitude+")', 4326))")
+                   "where category = 'coeur' "
+                   "and  st_contains(geom_poly, ST_GeomFromText('POINT("+longitude+ " "+latitude+")', 4326))")
         result = db.engine.execute(sql)
         diveSites = []
         for row in result:
@@ -276,7 +277,7 @@ class Dive(db.Model):
     weather_id = db.Column(db.Integer(), db.ForeignKey('weathers.id', ondelete='CASCADE'))
     weather = db.relationship("Weather", uselist=False, foreign_keys=[weather_id])
 
-    divetypedives = db.relationship('DiveTypeDive', backref='users', lazy='dynamic', foreign_keys='DiveTypeDive.dive_id')
+    git  = db.relationship('DiveTypeDive', backref='users', lazy='dynamic', foreign_keys='DiveTypeDive.dive_id')
 
 
     def json(self):
