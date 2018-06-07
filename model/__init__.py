@@ -277,7 +277,7 @@ class Dive(db.Model):
     weather_id = db.Column(db.Integer(), db.ForeignKey('weathers.id', ondelete='CASCADE'))
     weather = db.relationship("Weather", uselist=False, foreign_keys=[weather_id])
 
-    git  = db.relationship('DiveTypeDive', backref='users', lazy='dynamic', foreign_keys='DiveTypeDive.dive_id')
+    divetypedives = db.relationship('DiveTypeDive', backref='users', lazy='dynamic', foreign_keys='DiveTypeDive.dive_id')
 
 
     def json(self):
