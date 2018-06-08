@@ -48,6 +48,7 @@ class User(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     boats = db.relationship('Boat', backref='users', lazy='dynamic')
+    diveSites = db.relationship('DiveSite', backref='users', lazy='dynamic')
     dives = db.relationship('Dive', backref='users', lazy='dynamic', foreign_keys='Dive.user_id')
 
     def __repr__(self):
@@ -146,15 +147,10 @@ class DiveSite(db.Model):
     longitude = db.Column(db.String())
     category = db.Column(db.String())
     status = db.Column(db.String())
+    privacy = db.Column(db.String())
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
 
-    def __init__(self, id, name, referenced, longitude, latitude, geom_poly, geom_mp):
-        self.id = id
-        self.name = name
-        self.referenced = referenced
-        self.latitude = latitude
-        self.longitude = longitude
-        self.geom_mp = geom_mp
-        self.geom_poly = geom_poly
+
 
 
     def all_sites():
@@ -165,19 +161,15 @@ class DiveSite(db.Model):
                    "latitude, "
                    "longitude, "
                    "ST_AsGeoJSON(geom_poly) as geom_poly, "
-                   "ST_AsGeoJSON(geom_mp) as geom_mp"
+                   "ST_AsGeoJSON(geom_mp) as geom_mp,"
+                    "privacy,"
+                    "category"
                    " from divesites "
                    "where category = 'site'")
         result = db.engine.execute(sql)
         diveSites = []
         for row in result:
-            diveSites.append(DiveSite(row['id'],
-                                      row['name'],
-                                      row['referenced'],
-                                      row['latitude'],
-                                      row['longitude'],
-                                      row['geom_poly'],
-                                      row['geom_mp'])
+            diveSites.append(DiveSite(**row)
                              )
         return diveSites
 
@@ -189,19 +181,14 @@ class DiveSite(db.Model):
                    "latitude, "
                    "longitude, "
                    "ST_AsGeoJSON(geom_poly) as geom_poly, "
-                   "ST_AsGeoJSON(geom_mp) as geom_mp"
+                   "ST_AsGeoJSON(geom_mp) as geom_mp,"
+                     "privacy"
                    " from divesites "
                    "where category = 'coeur'")
         result = db.engine.execute(sql)
         diveSites = []
         for row in result:
-            diveSites.append(DiveSite(row['id'],
-                                      row['name'],
-                                      row['referenced'],
-                                      row['latitude'],
-                                      row['longitude'],
-                                      row['geom_poly'],
-                                      row['geom_mp'])
+            diveSites.append(DiveSite(**row)
                              )
         return diveSites
 
@@ -213,20 +200,15 @@ class DiveSite(db.Model):
                    "latitude, "
                    "longitude, "
                    "ST_AsGeoJSON(geom_poly) as geom_poly, "
-                   "ST_AsGeoJSON(geom_mp) as geom_mp"
+                   "ST_AsGeoJSON(geom_mp) as geom_mp,"
+                    " privacy "
                    " from divesites "
                    "where category = 'coeur' "
                    "and  st_contains(geom_poly, ST_GeomFromText('POINT("+longitude+ " "+latitude+")', 4326))")
         result = db.engine.execute(sql)
         diveSites = []
         for row in result:
-            diveSites.append(DiveSite(row['id'],
-                                      row['name'],
-                                      row['referenced'],
-                                      row['latitude'],
-                                      row['longitude'],
-                                      row['geom_poly'],
-                                      row['geom_mp'])
+            diveSites.append(DiveSite(**row)
                              )
         return diveSites
 
@@ -238,7 +220,9 @@ class DiveSite(db.Model):
             'geom_mp': self.geom_mp,
             'geom_poly': self.geom_poly,
             'latitude': self.latitude,
-            'longitude': self.longitude
+            'longitude': self.longitude,
+            'privacy': self.privacy,
+            'user_id': self.user_id
         }
 
     def cusJson(self):
@@ -247,7 +231,9 @@ class DiveSite(db.Model):
             'name': self.name,
             'referenced': self.referenced,
             'latitude': self.latitude,
-            'longitude': self.longitude
+            'longitude': self.longitude,
+            'privacy': self.privacy,
+            'user_id': self.user_id
         }
 
 

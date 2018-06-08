@@ -18,3 +18,13 @@ def getDiveHearts():
 def get_hearts():
     payload = request.get_json()
     return jsonify([diveSite.cusJson() for diveSite in DiveSite.getHeartsByPoint(str(payload['lat']), str(payload['lng']))])
+
+@divesite.route('/api/users/divesite/save', methods=['POST'])
+@authenticate
+def save(reqUser):
+        payload = request.get_json()
+        diveSite = DiveSite(**payload)
+        diveSite.user_id = reqUser.id
+        db.session.add(diveSite)
+        db.session.commit()
+        return jsonify(diveSite.cusJson())
