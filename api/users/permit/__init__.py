@@ -26,7 +26,7 @@ def get_permit(id):
         now = datetime.datetime.utcnow()
         f = '/'.join([
             DATA_DIR,
-            '_'.join(['permit', 'capel',
+            '_'.join(['Autorisation', 'PNPC',
                       str(now.year), str(user.firstname), str(user.id)])
             + '.pdf'])
 
