@@ -71,7 +71,7 @@ class User(db.Model):
             'lastname': self.lastname,
             'status': self.status,
             'createdAt': self.created_at,
-            'boats': [boat.json() for boat in self.boats],
+            'boats': [boat.json() for boat in self.boats if boat.status != 'removed'],
         }
 
 
@@ -84,6 +84,7 @@ class Boat(db.Model):
     name = db.Column(db.String(50), nullable=False)
     matriculation = db.Column(db.Unicode(255), unique=True)
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
+    status = db.Column(db.Unicode(255), default='enabled')
 
     def __repr__(self):
         return '<Boat %r>' % self.name
@@ -92,7 +93,8 @@ class Boat(db.Model):
         return {
             'id': self.id,
             'name': self.name,
-            'matriculation': self.matriculation
+            'matriculation': self.matriculation,
+            'status': self.status
         }
 
 
