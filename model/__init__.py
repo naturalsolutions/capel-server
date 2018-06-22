@@ -70,7 +70,8 @@ class User(db.Model):
             'firstname': self.firstname,
             'lastname': self.lastname,
             'status': self.status,
-            'createdAt': self.created_at
+            'createdAt': self.created_at,
+            'boats': [boat.json() for boat in self.boats],
         }
 
 
