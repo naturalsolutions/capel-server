@@ -142,7 +142,7 @@ def users_validate_required(user):
             current_app.config['VALID_EMAIL_REGEX'], user['email'], re.I):
         errors.append({'name': 'invalid_format', 'key': 'email'})
 
-    for attr in ('lastname', 'firstname', 'address', 'phone'):
+    for attr in ('lastname', 'firstname', 'address', 'phone', 'city'):
         if not user.get(attr, None):
             errors.append({'name': 'invalid_format', 'key': attr})
 

@@ -39,6 +39,7 @@ class User(db.Model):
     country = db.Column(db.String(255), nullable=True)
     company = db.Column(db.String(255), nullable=True)
     zip = db.Column(db.String(255), nullable=True)
+    city = db.Column(db.String(255), nullable=True)
     phone = db.Column(db.String(255), nullable=True)
     website = db.Column(db.String(255), nullable=True)
     firstname = db.Column(db.String(255), nullable=True)
@@ -62,6 +63,7 @@ class User(db.Model):
             'category': self.category,
             'address': self.address,
             'zip': self.zip,
+            'city': self.city,
             'company': self.company,
             'country': self.country,
             'phone': self.phone,
