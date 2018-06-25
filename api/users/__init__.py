@@ -78,7 +78,7 @@ def post_users():
     except Exception as e:
         err_type, err_value, tb = sys.exc_info()
         current_app.logger.warn(
-            ''.join(format_exception_only(err_type, err_value, tb)))
+            ''.join(format_exception_only(err_type, err_value)))
 
         if err_type == 'TypeError':
             return jsonify(error='Invalid JSON.'), 400
@@ -152,6 +152,7 @@ def users_validate_required(user):
     return True
 
 
+#TODO factorize
 def validate_boats(boats):
     errors = []
 
