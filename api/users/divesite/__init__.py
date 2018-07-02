@@ -28,3 +28,10 @@ def save(reqUser):
         db.session.add(diveSite)
         db.session.commit()
         return jsonify(diveSite.cusJson())
+
+@divesite.route('/api/users/owndivesites', methods=['GET'])
+@authenticate
+def getUserDiveSites(reqUser):
+        #payload = request.get_json()
+        return jsonify( [diveSite.cusJson() for diveSite in DiveSite.getOwnUserSite(reqUser)])
+

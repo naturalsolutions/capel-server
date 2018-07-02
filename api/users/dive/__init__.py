@@ -109,6 +109,7 @@ def extract_dive(
         user_id=uid,
         site_id=dive_site.id,
         date=payload['divingDate'],
+        comment=payload['comment'],
         times=[[
             datetime.strptime(t['startTime'], '%H:%M').time(),
             datetime.strptime(t['endTime'], '%H:%M').time()

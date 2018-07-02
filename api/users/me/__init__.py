@@ -4,7 +4,7 @@ from flask import (Blueprint, jsonify, request, current_app)
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 
-from model import db, User, Boat, unique_constraint_key, not_null_constraint_key, unique_constraint_error, not_null_constraint_error
+from model import db, User, Boat, unique_constraint_error, not_null_constraint_error
 from auth import authenticate
 
 me = Blueprint('me', __name__)
@@ -49,6 +49,7 @@ def patchMe(reqUser):
             try:
                 if boat.get('id', None):
                     Boat.query.filter_by(id=boat.get('id')).update(boat)
+                    print(boat)
                 else:
                     boat['user_id'] = reqUser.id
                     boatModel = Boat(**boat)
@@ -64,12 +65,12 @@ def patchMe(reqUser):
 
                 if err_orig.find('violates unique constraint') > -1:
                     errorValue = unique_constraint_error(err_orig)
-                    err_value.index = i
+                    errorValue.index = i
                     errors.append(errorValue)
 
                 elif err_orig.find('violates not-null constraint') > -1:
                     errorValue = not_null_constraint_error(str(e))
-                    err_value.index = i
+                    errorValue.index = i
                     errors.append(errorValue)
 
                 return jsonify(error={'name': 'invalid_model', 'errors': errors}), 400

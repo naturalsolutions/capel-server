@@ -188,8 +188,6 @@ class DiveSite(db.Model):
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
 
 
-
-
     def all_sites():
 
         sql = text("select id, "
@@ -249,6 +247,26 @@ class DiveSite(db.Model):
                              )
         return diveSites
 
+    def getOwnUserSite(user):
+
+        sql = text("select distinct id, "
+                   "name, "
+                   "referenced, "
+                   "latitude, "
+                   "longitude, "
+                   "ST_AsGeoJSON(geom_poly) as geom_poly, "
+                   "ST_AsGeoJSON(geom_mp) as geom_mp,"
+                    " privacy "
+                   " from divesites "
+                   "where id in (select site_id from dives where user_id = '"+str(user.id)+"') "
+                   )
+        result = db.engine.execute(sql)
+        diveSites = []
+        for row in result:
+            diveSites.append(DiveSite(**row)
+                             )
+        return diveSites
+
     def json(self):
         return {
             'id': self.id,
@@ -297,6 +315,7 @@ class Dive(db.Model):
 
     latitude = db.Column(db.String())
     longitude = db.Column(db.String())
+    comment = db.Column(db.Text())
     weather_id = db.Column(db.Integer(), db.ForeignKey('weathers.id', ondelete='CASCADE'))
     weather = db.relationship("Weather", uselist=False, foreign_keys=[weather_id])
 
@@ -308,6 +327,7 @@ class Dive(db.Model):
         return {
             'id': self.id,
             'divingDate': self.date,
+            'comment': self.comment,
             'weather': self.weather.json(),
             'boats': [boat.json() for boat in self.boats],
             'times': [[time[0].__str__(), time[1].__str__()] for time in self.times],
