@@ -3,23 +3,23 @@ from flask import (Blueprint, jsonify, request)
 from model import db, DiveSite
 from auth import authenticate
 
-divesite = Blueprint('divesite', __name__)
+divesites = Blueprint('divesites', __name__)
 
 
-@divesite.route('/api/users/divesites')
+@divesites.route('/api/users/divesites')
 def getDiveSites():
     return jsonify([diveSite.json() for diveSite in DiveSite.all_sites()])
 
-@divesite.route('/api/users/divehearts')
+@divesites.route('/api/users/divehearts')
 def getDiveHearts():
     return jsonify([diveSite.json() for diveSite in DiveSite.all_hearts()])
 
-@divesite.route('/api/users/divehearts/checkpoint', methods=['POST'])
+@divesites.route('/api/users/divehearts/checkpoint', methods=['POST'])
 def get_hearts():
     payload = request.get_json()
     return jsonify([diveSite.cusJson() for diveSite in DiveSite.getHeartsByPoint(str(payload['lat']), str(payload['lng']))])
 
-@divesite.route('/api/users/divesite/save', methods=['POST'])
+@divesites.route('/api/users/divesite/save', methods=['POST'])
 @authenticate
 def save(reqUser):
         payload = request.get_json()
@@ -29,9 +29,8 @@ def save(reqUser):
         db.session.commit()
         return jsonify(diveSite.cusJson())
 
-@divesite.route('/api/users/owndivesites', methods=['GET'])
+@divesites.route('/api/users/owndivesites', methods=['GET'])
 @authenticate
 def getUserDiveSites(reqUser):
-        #payload = request.get_json()
         return jsonify( [diveSite.cusJson() for diveSite in DiveSite.getOwnUserSite(reqUser)])
 
