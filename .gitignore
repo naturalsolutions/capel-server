@@ -104,7 +104,6 @@ ENV/
 .vscode
 credentials.py
 app_conf.py
-permits/
 .idea/
 dba.py
 .venv/
