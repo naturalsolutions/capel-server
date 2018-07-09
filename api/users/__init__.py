@@ -1,19 +1,14 @@
 import sys
 import datetime
 from traceback import format_exception_only
-import re
 import string
 import random
-
 from flask import (Blueprint, jsonify, request, current_app)
 from sqlalchemy.exc import IntegrityError
-
 from mail import EmailTemplate, sendmail
-
-from model import ( db, User, Boat, unique_constraint_key, not_null_constraint_key)
-from auth import (make_digest, generate_token, generate_id_token,authenticate, compare_digest)
-
-
+from model import (db, User, Boat, unique_constraint_key, not_null_constraint_key)
+from auth import ( make_digest, generate_token, generate_id_token,authenticate, compare_digest)
+from validators import(validate_boats, users_validate_required)
 
 users = Blueprint('users', __name__)
 
@@ -146,7 +141,6 @@ def patchMe(reqUser):
             try:
                 if boat.get('id', None):
                     Boat.query.filter_by(id=boat.get('id')).update(boat)
-                    print(boat)
                 else:
                     boat['user_id'] = reqUser.id
                     boatModel = Boat(**boat)
@@ -234,7 +228,6 @@ def log_in():
 @users.route('/api/users/<email>/password/recover', methods=['GET'])
 def recover(email):
     try:
-        print(email)
         user = User.query.filter_by(username=email).first()
     except Exception as e:
         return jsonify(error='Could not verify.'), 401
@@ -258,80 +251,7 @@ def recover(email):
         sendmail(
             'no-reply@natural-solutions.eu', user.email,
             current_app.config['REMINDER_EMAIL_SUBJECT'], emailBody)
-        print(new_pass)
         return jsonify(new_pass)
 
 def id_generator(size=8, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
-
-
-# TODO facorize with users.validate_boats
-def validate_boats(boats):
-    errors = []
-
-    for i, boat in enumerate(boats):
-        if boat in (None, ''):
-            errors.append(
-                {'name': 'invalid_format', 'key': f'boats{i}'})
-            continue
-
-        elif boat.get('name') in (None, ''):
-            errors.append({
-                'table': 'boats',
-                'column': 'name',
-                'value': boat.get('name'),
-                'name': 'missing_attribute',
-                'index': i
-            })
-
-        elif boat.get('matriculation') in (None, ''):
-            errors.append({
-                'table': 'boats',
-                'column': 'matriculation',
-                'value': boat.get('matriculation'),
-                'name': 'missing_attribute',
-                'index': i
-            })
-
-    if len(errors) >= 0:
-        return {'errors': errors}
-    return True
-
-
-def users_validate_required(user):
-    errors = []
-
-    if (not user.get('category', None) or
-            user.get('category') not in ('particulier', 'structure')):
-        errors.append({
-            'name': 'invalid_format',
-            'key': 'category'
-        })
-
-    if len(user['password']) < current_app.config['VALID_PWD_MIN_LEN']:
-        errors.append({
-            'name': 'invalid_password',
-            'key': 'password',
-            'message': 'Password length must be >= ' +
-                                  current_app.config['VALID_PWD_MIN_LEN']
-        })
-
-    if not re.match( current_app.config['VALID_EMAIL_REGEX'], user['email'], re.I ):
-        errors.append({
-            'table': 'users',
-            'name': 'invalid_email',
-            'column': 'email'
-        })
-
-    for attr in ('lastname', 'firstname', 'address', 'phone', 'city'):
-        if not user.get(attr, None):
-            errors.append({
-                'name': 'missing_attribute',
-                'table': 'users',
-                'column': attr
-            })
-
-    if len(errors) >= 0:
-        return {'errors': errors}
-
-    return True
