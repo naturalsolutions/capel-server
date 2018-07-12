@@ -3,10 +3,11 @@ import datetime
 from traceback import format_exception_only
 import string
 import random
+import traceback
 from flask import (Blueprint, jsonify, request, current_app)
 from sqlalchemy.exc import IntegrityError
 from mail import EmailTemplate, sendmail
-from model import (db, User, Boat, unique_constraint_key, not_null_constraint_key)
+from model import (db, User, Boat, unique_constraint_key, not_null_constraint_key, unique_constraint_error)
 from auth import ( make_digest, generate_token, generate_id_token,authenticate, compare_digest)
 from validators import(validate_boats, users_validate_required)
 
@@ -15,7 +16,7 @@ users = Blueprint('users', __name__)
 @users.route('/api/users', methods=['GET'])
 @authenticate
 def getUsers(reqUser):
-    users = User.query.all()
+    users = User.query.filter( User.status != 'deleted' ).all()
     return jsonify([user.json() for user in users])
 
 
@@ -27,6 +28,7 @@ def getBoats(reqUser):
     for boat in boats:
         boatJsn.append(boat.json())
     return jsonify(boatJsn)
+
 
 
 @users.route('/api/users', methods=['POST'])
@@ -117,6 +119,37 @@ def getMe(reqUser):
     reqUser = reqUser.json()
     return jsonify(reqUser)
 
+@users.route('/api/users', methods=['DELETE'])
+@authenticate
+def deleteUsers(reqUser):
+    if(reqUser.role != 'admin'):
+         return jsonify(error={
+                'errors': 'Not Authorized'
+            }), 401
+    try:
+        ids = request.args.getlist('id[]')
+        for id in ids:
+            print(id)
+            db.session.query(User).filter(User.id == int(id)).update({'status':'deleted'})
+            db.session.commit()
+        return jsonify('success'), 200
+    except Exception:
+        traceback.print_exc()
+        return jsonify(error='Invalid JSON.'), 400
+
+@users.route('/api/users', methods=['PATCH'])
+@authenticate
+def patchUsers(reqUser):
+    users = request.get_json()
+    for user in users:
+        userPatch = {}
+        for key, value in user.items():
+            if value != '':
+                userPatch[key] = value
+        patchUser(userPatch, reqUser)
+    return jsonify('success'), 200
+
+
 
 @users.route('/api/users/me', methods=['PATCH'])
 @authenticate
@@ -126,7 +159,10 @@ def patchMe(reqUser):
     for key, value in request.get_json().items():
         if value != '':
             userPatch[key] = value
+    patchUser(userPatch, reqUser)
+    return jsonify('success'), 200
 
+def patchUser(userPatch, reqUser):
     boats = userPatch['boats']
     del userPatch['boats']
     validate_boats(boats)
@@ -149,10 +185,10 @@ def patchMe(reqUser):
             except (IntegrityError, Exception) as e:
                 catch(e)
 
-                return jsonify(error={'name': 'invalid_model', 'errors': errors}), 400
-
     try:
-        User.query.filter_by(id=reqUser.id).update(userPatch)
+        print(userPatch['id'])
+        #User.query.filter_by(id=int(userPatch.id)).update(userPatch)
+        db.session.query(User).filter(User.id == int(userPatch['id'])).update(userPatch)
         db.session.commit()
     # TODO factorize
     except (IntegrityError, Exception) as e:

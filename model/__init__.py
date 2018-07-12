@@ -79,7 +79,7 @@ class User(db.Model):
     status = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
+    role = db.Column(db.String(255), nullable=True)
     boats = db.relationship('Boat', backref='users', lazy='dynamic')
     diveSites = db.relationship('DiveSite', backref='users', lazy='dynamic')
     dives = db.relationship('Dive', backref='users', lazy='dynamic', foreign_keys='Dive.user_id')
