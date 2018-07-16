@@ -1,10 +1,12 @@
 import os
 import sys
 import datetime
+from typing import Mapping, Sequence
 from traceback import format_exception_only
-from flask import (Blueprint, Response, current_app)
-
-from model import User
+from flask import (Blueprint, Response, current_app, request, jsonify)
+import traceback
+from model import User, TypePermit, db, TypePermitHearts
+from auth import ( authenticate)
 
 DATA_DIR = None
 
@@ -15,7 +17,6 @@ def init_app(app):
     global DATA_DIR
     DATA_DIR = app.config['PERMITS_DIR']
     os.makedirs(DATA_DIR, exist_ok=True)
-
 
 @permits.route('/api/users/<int:id>/permit.pdf', methods=['GET'])
 def get_permit(id):
@@ -66,3 +67,40 @@ def get_permit(id):
             current_app.logger.warn(
                 ''.join(format_exception_only(err_type, err_value)))
             return '500 error', 500
+
+@permits.route('/api/permits', methods=['POST'])
+def save_permit():
+    payload = request.get_json()
+    dive_sites = payload['divesites']
+    del payload['divesites']
+    type_permit = TypePermit(**payload)
+
+    try:
+
+        type_permit.template = str(payload['template'])
+        db.session.add(type_permit)
+        db.session.commit()
+
+        type_permit_hearts = extract_permit_dive_sites(type_permit, dive_sites)
+        db.session.add_all(type_permit_hearts)
+        db.session.commit()
+
+        return jsonify('success'), 200
+
+    except (Exception) as e:
+        traceback.print_exc()
+        return jsonify('500 error'), 500
+
+@permits.route('/api/typepermits', methods=['GET'])
+@authenticate
+def get_all_type_permits(reqUser):
+    return jsonify([type_permit.json() for type_permit in TypePermit.query.all()])
+
+
+def extract_permit_dive_sites( type_permit: TypePermit, dive_sites) -> Sequence[TypePermitHearts]:
+    return [
+        TypePermitHearts(
+            type_permit_id=int(type_permit.id),
+            dive_site_id=int(dive_site['id']))
+        for dive_site in dive_sites
+        ]

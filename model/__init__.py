@@ -169,6 +169,44 @@ class TypeDive(db.Model):
             'name': self.name
         }
 
+class TypePermit(db.Model):
+    __tablename__ = 'typepermits'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer(), primary_key=True)
+    start_at = db.Column(db.DateTime)
+    end_at = db.Column(db.DateTime)
+    template = db.Column(db.Text())
+    status = db.Column(db.Unicode(255))
+    caption = db.Column(db.Unicode(255))
+
+    def json(self):
+        return {
+            'id': self.id,
+            'start_at': self.start_at,
+            'end_at': self.end_at,
+            'template': self.template,
+            'status': self.status,
+            'caption': self.caption
+        }
+
+class TypePermitHearts(db.Model):
+    __tablename__ = 'typepermithearts'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer(), primary_key=True)
+    type_permit_id = db.Column(db.Integer(), db.ForeignKey('typepermits.id', ondelete='CASCADE'))
+    dive_site_id = db.Column(db.Integer(), db.ForeignKey('divesites.id', ondelete='CASCADE'))
+    dive_site = db.relationship("DiveSite", uselist=False, foreign_keys=[dive_site_id])
+    type_permit = db.relationship('TypePermit', uselist=False, foreign_keys=[type_permit_id])
+
+    def json(self):
+        return {
+            'id': self.id,
+            'dive_site': self.dive_site.json(),
+            'type_permit': self.type_permit.json()
+        }
+
 
 class DiveSite(db.Model):
 
@@ -219,7 +257,7 @@ class DiveSite(db.Model):
                    "ST_AsGeoJSON(geom_mp) as geom_mp,"
                      "privacy"
                    " from divesites "
-                   "where category = 'coeur'")
+                   "where category = 'coeur' and status='enabled' ")
         result = db.engine.execute(sql)
         diveSites = []
         for row in result:
@@ -238,7 +276,7 @@ class DiveSite(db.Model):
                    "ST_AsGeoJSON(geom_mp) as geom_mp,"
                     " privacy "
                    " from divesites "
-                   "where category = 'coeur' "
+                   "where category = 'coeur' and status='enabled' "
                    "and  st_contains(geom_poly, ST_GeomFromText('POINT("+longitude+ " "+latitude+")', 4326))")
         result = db.engine.execute(sql)
         diveSites = []

@@ -20,6 +20,10 @@ WEATHER_DATA_MAP = {
 
 dives = Blueprint('dives', __name__)
 
+@dives.route('/api/dives', methods=['GET'])
+@authenticate
+def get_all_dives(reqUser):
+    return jsonify([dive.json() for dive in Dive.query.all()])
 
 @dives.route('/api/users/dives', methods=['GET'])
 @authenticate
