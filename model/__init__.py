@@ -170,6 +170,7 @@ class TypeDive(db.Model):
         }
 
 class TypePermit(db.Model):
+
     __tablename__ = 'typepermits'
     __table_args__ = {'extend_existing': True}
 
@@ -179,6 +180,7 @@ class TypePermit(db.Model):
     template = db.Column(db.Text())
     status = db.Column(db.Unicode(255))
     caption = db.Column(db.Unicode(255))
+    dive_sites = db.relationship('DiveSite', secondary='typepermithearts', backref='type_permit')
 
     def json(self):
         return {
@@ -187,7 +189,8 @@ class TypePermit(db.Model):
             'end_at': self.end_at,
             'template': self.template,
             'status': self.status,
-            'caption': self.caption
+            'caption': self.caption,
+            'dive_sites': [dive_site.cusJson() for dive_site in self.dive_sites]
         }
 
 class TypePermitHearts(db.Model):
