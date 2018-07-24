@@ -9,6 +9,7 @@ JWT_AUTH_TYPE = 'Bearer'
 JWT_ID_TK_EXP = timedelta(seconds=86400)
 VALID_PWD_MIN_LEN = 6
 PERMIT_TEMPLATE = 'assets/reglement_2017.pdf'
+PERMIT_PATH = 'assets/'
 PERMITS_DIR = 'permits'
 SENDGRID_API_KEY = os.environ.get('SENDGRID_KEY')
 WEBAPP_URL = 'http://149.202.44.29/capel-client'
@@ -20,7 +21,6 @@ RECOVER_PASSWORD_TEMPLATE = 'assets/recover_password_template.html'
 REMINDER_EMAIL_SUBJECT = 'Valider votre compte'
 REMINDER_EMAIL_TEMPLATE = WELCOME_EMAIL_TEMPLATE
 
-PERMIT_TEMPLATE = 'assets/reglement_2017.pdf'
 PERMITS_DIR = 'permits'
 
 VALID_PWD_MIN_LEN = 6
