@@ -6,6 +6,7 @@ import random
 import traceback
 from flask import (Blueprint, jsonify, request, current_app)
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func
 from mail import EmailTemplate, sendmail
 from model import (db, User, Boat, unique_constraint_key, not_null_constraint_key, unique_constraint_error)
 from auth import ( make_digest, generate_token, generate_id_token,authenticate, compare_digest)
@@ -19,6 +20,11 @@ def getUsers(reqUser):
     users = User.query.filter( User.status != 'deleted' ).all()
     return jsonify([user.json() for user in users])
 
+@users.route('/api/users/count', methods=['GET'])
+@authenticate
+def get_count_users(reqUser):
+    data = db.session.query(func.count(User.id)).scalar()
+    return  jsonify(data)
 
 @users.route('/api/users/boats')
 @authenticate

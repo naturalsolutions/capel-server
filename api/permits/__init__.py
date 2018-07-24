@@ -5,11 +5,11 @@ from typing import Mapping, Sequence
 from traceback import format_exception_only
 from flask import (Blueprint, Response, current_app, request, jsonify)
 import traceback
-from model import User, TypePermit, db, TypePermitHearts
+from model import User, TypePermit, db, TypePermitHearts, Permit
 from auth import ( authenticate)
 import base64
 from pathlib import Path
-
+from sqlalchemy import func
 DATA_DIR = None
 
 permits = Blueprint('permits', __name__)
@@ -19,6 +19,12 @@ def init_app(app):
     global DATA_DIR
     DATA_DIR = app.config['PERMITS_DIR']
     os.makedirs(DATA_DIR, exist_ok=True)
+
+@permits.route('/api/permits/count', methods=['GET'])
+@authenticate
+def get_count_users(reqUser):
+    data = db.session.query(func.count(Permit.id)).scalar()
+    return  jsonify(data)
 
 @permits.route('/api/users/<int:id>/permit.pdf', methods=['GET'])
 def get_permit(id):
@@ -30,6 +36,11 @@ def get_permit(id):
     if not my_file.is_file():
         with open(permit_model, 'wb') as fout:
             fout.write(base64.decodestring((bytes(typePermit.template, 'utf-8'))))
+    permit =  Permit()
+    permit.user_id = id
+    permit.typepermit_id = typePermit.id
+    db.session.add(permit)
+    db.session.commit()
     if user is not None:
         now = datetime.datetime.utcnow()
         f = '/'.join([

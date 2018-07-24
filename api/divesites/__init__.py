@@ -2,9 +2,14 @@ from flask import (Blueprint, jsonify, request)
 
 from model import db, DiveSite
 from auth import authenticate
-
+from sqlalchemy import func
 divesites = Blueprint('divesites', __name__)
 
+@divesites.route('/api/divesites/count', methods=['GET'])
+@authenticate
+def get_count_divesites(reqUser):
+    data = db.session.query(func.count(DiveSite.id)).scalar()
+    return  jsonify(data)
 
 @divesites.route('/api/users/divesites')
 def getDiveSites():

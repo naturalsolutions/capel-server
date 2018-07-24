@@ -7,7 +7,7 @@ import traceback
 from model import (
     db, User, Boat, Weather, DiveSite, TypeDive, DiveTypeDive, Dive)
 from auth import authenticate
-
+from sqlalchemy import func
 
 WEATHER_DATA_MAP = {
     'sky': 'sky',
@@ -23,7 +23,20 @@ dives = Blueprint('dives', __name__)
 @dives.route('/api/dives', methods=['GET'])
 @authenticate
 def get_all_dives(reqUser):
-    return jsonify([dive.json() for dive in Dive.query.all()])
+    def get_count_dives(reqUser):
+        return jsonify([dive.json() for dive in Dive.query.all()])
+
+@dives.route('/api/dives/count', methods=['GET'])
+@authenticate
+def get_count_dives(reqUser):
+    data = db.session.query(func.count(Dive.id)).scalar()
+    return  jsonify(data)
+
+@dives.route('/api/dives/count/bydate', methods=['GET'])
+@authenticate
+def get_count_filtred_dives(reqUser):
+    data = db.session.query(Dive.date, func.count(Dive.date)).group_by(Dive.date).order_by(Dive.date).all()
+    return  jsonify(data)
 
 @dives.route('/api/users/dives', methods=['GET'])
 @authenticate

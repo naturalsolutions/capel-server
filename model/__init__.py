@@ -115,7 +115,7 @@ class Boat(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(50), nullable=False)
     matriculation = db.Column(db.Unicode(255), unique=True)
-    user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id'), nullable=True)
     status = db.Column(db.Unicode(255), default='enabled')
 
     def __repr__(self):
@@ -129,21 +129,18 @@ class Boat(db.Model):
             'status': self.status
         }
 
-
 class Permit(db.Model):
 
     __tablename__ = 'permits'
     __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer(), primary_key=True)
-    name = db.Column(db.String(50), nullable=False, unique=True)
-    url = db.Column(db.Unicode(255))
     status = db.Column(db.Unicode(255))
-    created_at = db.Column(db.DateTime)
-    updated_at = db.Column(db.DateTime)
-    end_at = db.Column(db.DateTime)
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
-    site_id = db.Column(db.Integer(), db.ForeignKey('divesites.id', ondelete='CASCADE'))
+    typepermit_id = db.Column(db.Integer(), db.ForeignKey('typepermits.id'), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
+
 
 
 class TypeDive(db.Model):
@@ -226,7 +223,7 @@ class DiveSite(db.Model):
     category = db.Column(db.String())
     status = db.Column(db.String())
     privacy = db.Column(db.String())
-    user_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id'), nullable=True)
 
 
     def all_sites():
@@ -343,15 +340,15 @@ class Dive(db.Model):
     date = db.Column(db.DateTime)
     times = db.Column(db.ARRAY(db.Time, dimensions=2))
 
-    user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id'), nullable=True)
     user = db.relationship('User', back_populates='dives', foreign_keys='Dive.user_id')
-    shop_id = db.Column(db.Integer(), db.ForeignKey('users.id'))
+    shop_id = db.Column(db.Integer(), db.ForeignKey('users.id'), nullable=True)
     shop = db.relationship("User", foreign_keys='Dive.shop_id')
 
     boats = db.relationship('Boat', secondary='diveboats', backref='dive')
     #dive_types = db.relationship('TypeDive', secondary='divetypedives',  backref='dive')
 
-    site_id = db.Column(db.Integer(), db.ForeignKey('divesites.id', ondelete='CASCADE'))
+    site_id = db.Column(db.Integer(), db.ForeignKey('divesites.id'), nullable=True)
     dive_site = db.relationship("DiveSite", uselist=False, foreign_keys=[site_id])
 
     latitude = db.Column(db.String())

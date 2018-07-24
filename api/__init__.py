@@ -21,3 +21,5 @@ def getTypeDives():
     for typeDive in typeDives:
         typeDivesJsn.append(typeDive.json())
     return jsonify(typeDivesJsn)
+
+
