@@ -166,7 +166,8 @@ def patchMe(reqUser):
         if value != '':
             userPatch[key] = value
     patchUser(userPatch, reqUser)
-    return jsonify('success'), 200
+    user = User.query.filter_by(id=reqUser.id).first()
+    return jsonify(user.json())
 
 def patchUser(userPatch, reqUser):
     boats = userPatch['boats']
