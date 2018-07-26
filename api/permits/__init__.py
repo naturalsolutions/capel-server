@@ -127,7 +127,6 @@ def update_type_permit(reqUser):
             for key, value in typePermit.items():
                 if value != '':
                     permitPatch[key] = value
-            print(permitPatch['id'])
             db.session.query(TypePermit).filter(TypePermit.id == int(permitPatch['id'])).update(permitPatch)
             db.session.query(TypePermit).filter(TypePermit.id != int(permitPatch['id'])).update({'status': 'disabled'})
             db.session.commit()
