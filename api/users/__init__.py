@@ -165,6 +165,8 @@ def patchMe(reqUser):
     for key, value in request.get_json().items():
         if value != '':
             userPatch[key] = value
+
+    userPatch['id'] = reqUser.id
     patchUser(userPatch, reqUser)
     user = User.query.filter_by(id=reqUser.id).first()
     return jsonify(user.json())
@@ -200,10 +202,6 @@ def patchUser(userPatch, reqUser):
     # TODO factorize
     except (IntegrityError, Exception) as e:
         catch(e)
-
-    user = User.query.filter_by(id=reqUser.id).first()
-
-    return jsonify(user.json())
 
 def catch(e):
     db.session.rollback()
