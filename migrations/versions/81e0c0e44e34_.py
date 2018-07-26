@@ -24,7 +24,7 @@ def upgrade():
     #op.drop_table('us_lex')
     #op.drop_table('sites')
     #op.drop_table('coeurs')
-    op.drop_index('sidx_polies_geom', table_name='polies')
+    #op.drop_index('sidx_polies_geom', table_name='polies')
     op.drop_table('polies')
     op.drop_constraint('dives_site_id_fkey', 'dives', type_='foreignkey')
     op.drop_constraint('dives_user_id_fkey', 'dives', type_='foreignkey')
