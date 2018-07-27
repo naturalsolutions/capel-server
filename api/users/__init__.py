@@ -128,10 +128,12 @@ def getMe(reqUser):
 @users.route('/api/users', methods=['DELETE'])
 @authenticate
 def deleteUsers(reqUser):
+    '''
     if(reqUser.role != 'admin'):
          return jsonify(error={
                 'errors': 'Not Authorized'
             }), 401
+    '''
     try:
         ids = request.args.getlist('id[]')
         for id in ids:
