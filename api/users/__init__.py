@@ -195,8 +195,6 @@ def patchUser(userPatch, reqUser):
                 catch(e)
 
     try:
-        print(userPatch['id'])
-        #User.query.filter_by(id=int(userPatch.id)).update(userPatch)
         db.session.query(User).filter(User.id == int(userPatch['id'])).update(userPatch)
         db.session.commit()
     # TODO factorize
