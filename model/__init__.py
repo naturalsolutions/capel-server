@@ -101,6 +101,7 @@ class User(db.Model):
             'phone': self.phone,
             'firstname': self.firstname,
             'lastname': self.lastname,
+            'role': self.role,
             'status': self.status,
             'createdAt': self.created_at,
             'boats': [boat.json() for boat in self.boats if boat.status != 'removed'],
