@@ -11,6 +11,7 @@ import base64
 from pathlib import Path
 from sqlalchemy import func
 DATA_DIR = None
+from sqlalchemy import or_, desc
 
 permits = Blueprint('permits', __name__)
 
@@ -115,7 +116,9 @@ def save_permit():
 @permits.route('/api/typepermits', methods=['GET'])
 @authenticate
 def get_all_type_permits(reqUser):
-    return jsonify([type_permit.json() for type_permit in TypePermit.query.all()])
+    return jsonify([type_permit.json() for type_permit in TypePermit.query.\
+                                order_by(desc(TypePermit.id)).\
+                                all()])
 
 @permits.route('/api/typepermits', methods=['PATCH'])
 @authenticate

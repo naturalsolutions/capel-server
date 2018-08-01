@@ -4,6 +4,7 @@ from traceback import format_exception_only
 import string
 import random
 import traceback
+from sqlalchemy import or_, desc
 from flask import (Blueprint, jsonify, request, current_app)
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
@@ -17,8 +18,24 @@ users = Blueprint('users', __name__)
 @users.route('/api/users', methods=['GET'])
 @authenticate
 def getUsers(reqUser):
-    users = User.query.filter( User.status != 'deleted' ).all()
-    return jsonify([user.json() for user in users])
+    try:
+        term = request.args.get("term")
+        users = []
+        if term:
+            users = User.query.filter(User.status != 'deleted').\
+                              filter( or_ (User.firstname.like("%" + term + "%"),
+                                           User.lastname.like("%" + term + "%"),
+                                           User.email.like("%" + term + "%"))).\
+                                order_by(desc(User.id)).\
+                                all()
+        else:
+            users = User.query.filter(User.status != 'deleted').\
+                                order_by(desc(User.id)).\
+                                all()
+        return jsonify([user.json() for user in users])
+    except Exception:
+        traceback.print_exc()
+        return jsonify(error='Invalid JSON.'), 400
 
 @users.route('/api/users/count', methods=['GET'])
 @authenticate
