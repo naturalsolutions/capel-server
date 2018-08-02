@@ -98,7 +98,7 @@ def save_permit():
     type_permit = TypePermit(**payload)
 
     try:
-
+        db.session.query(TypePermit).filter(TypePermit.status == 'enabled').update({'status': 'disabled'})
         type_permit.template = str(payload['template'])
         db.session.add(type_permit)
         db.session.commit()
