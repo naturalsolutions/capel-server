@@ -6,7 +6,7 @@ from traceback import format_exception_only
 from flask import (Blueprint, Response, current_app, request, jsonify)
 import traceback
 from model import User, TypePermit, db, TypePermitHearts, Permit
-from auth import ( authenticate)
+from auth import ( authenticate, authenticateAdmin)
 import base64
 from pathlib import Path
 from sqlalchemy import func
@@ -22,7 +22,7 @@ def init_app(app):
     os.makedirs(DATA_DIR, exist_ok=True)
 
 @permits.route('/api/permits/count', methods=['GET'])
-@authenticate
+@authenticateAdmin
 def get_count_users(reqUser):
     data = db.session.query(func.count(Permit.id)).scalar()
     return  jsonify(data)
@@ -91,6 +91,7 @@ def get_permit(id):
             return '500 error', 500
 
 @permits.route('/api/permits', methods=['POST'])
+@authenticateAdmin
 def save_permit():
     payload = request.get_json()
     dive_sites = payload['divesites']
@@ -114,14 +115,14 @@ def save_permit():
         return jsonify('500 error'), 500
 
 @permits.route('/api/typepermits', methods=['GET'])
-@authenticate
+@authenticateAdmin
 def get_all_type_permits(reqUser):
     return jsonify([type_permit.json() for type_permit in TypePermit.query.\
                                 order_by(desc(TypePermit.id)).\
                                 all()])
 
 @permits.route('/api/typepermits', methods=['PATCH'])
-@authenticate
+@authenticateAdmin
 def update_type_permit(reqUser):
     try:
         typePermits = request.get_json()

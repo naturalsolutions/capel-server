@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
 from mail import EmailTemplate, sendmail
 from model import (db, User, Boat, unique_constraint_key, not_null_constraint_key, unique_constraint_error)
-from auth import ( make_digest, generate_token, generate_id_token,authenticate, compare_digest)
+from auth import ( make_digest, generate_token, generate_id_token,authenticate, compare_digest, authenticateAdmin)
 from validators import(validate_boats, users_validate_required)
 
 users = Blueprint('users', __name__)
@@ -143,19 +143,13 @@ def getMe(reqUser):
     return jsonify(reqUser)
 
 @users.route('/api/users', methods=['DELETE'])
-@authenticate
+@authenticateAdmin
 def deleteUsers(reqUser):
-    '''
-    if(reqUser.role != 'admin'):
-         return jsonify(error={
-                'errors': 'Not Authorized'
-            }), 401
-    '''
     try:
         ids = request.args.getlist('id[]')
         for id in ids:
             print(id)
-            db.session.query(User).filter(User.id == int(id)).update({'status':'deleted'})
+            db.session.query(User).filter(User.id == int(id)).update({'status': 'deleted'})
             db.session.commit()
         return jsonify('success'), 200
     except Exception:
@@ -163,7 +157,7 @@ def deleteUsers(reqUser):
         return jsonify(error='Invalid JSON.'), 400
 
 @users.route('/api/users', methods=['PATCH'])
-@authenticate
+@authenticateAdmin
 def patchUsers(reqUser):
     users = request.get_json()
     for user in users:

@@ -95,3 +95,30 @@ def authenticateOrNot(f):
 
         return f(user, *args, **kwargs)
     return decorated_function
+
+def authenticateAdmin(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if request.headers.get('Authorization') is None:
+            return f(None, *args, **kwargs)
+        user = None
+        try:
+            auth_type, token = request.headers.get('Authorization')\
+                                              .split(' ', 1)
+
+            if (token is None or
+                    auth_type != current_app.config['JWT_AUTH_TYPE']):
+                return jsonify(error='Invalid token.'), 401
+
+            payload = jwt.decode(
+                token, key=current_app.config['JWTSECRET'], algorithm='HS256')
+
+            user = User.query.filter_by(id=payload['id']).first()
+            if user.role != 'admin':
+                return jsonify(error='Could not authenticate.'), 401
+
+        except Exception:
+            return jsonify(error='Could not authenticate.'), 401
+
+        return f(user, *args, **kwargs)
+    return decorated_function

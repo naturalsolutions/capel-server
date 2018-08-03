@@ -104,6 +104,7 @@ class User(db.Model):
             'lastname': self.lastname,
             'role': self.role,
             'status': self.status,
+            'review': self.review,
             'createdAt': self.created_at,
             'boats': [boat.json() for boat in self.boats if boat.status != 'removed'],
         }
