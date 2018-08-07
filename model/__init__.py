@@ -81,6 +81,7 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     role = db.Column(db.String(255), nullable=True)
+    photo = db.Column(db.Text())
     boats = db.relationship('Boat', backref='users', lazy='dynamic')
     diveSites = db.relationship('DiveSite', backref='users', lazy='dynamic')
     dives = db.relationship('Dive', backref='users', lazy='dynamic', foreign_keys='Dive.user_id')
@@ -105,7 +106,8 @@ class User(db.Model):
             'role': self.role,
             'status': self.status,
             'review': self.review,
-            'createdAt': self.created_at,
+            'photo': self.photo,
+            'created_at': self.created_at,
             'boats': [boat.json() for boat in self.boats if boat.status != 'removed'],
         }
 
@@ -140,9 +142,22 @@ class Permit(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     status = db.Column(db.Unicode(255))
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
+    user = db.relationship('User', foreign_keys='Permit.user_id')
     typepermit_id = db.Column(db.Integer(), db.ForeignKey('typepermits.id'), nullable=True)
+    typepermit = db.relationship('TypePermit', foreign_keys='Permit.typepermit_id')
     created_at = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
+
+    def json(self):
+        return {
+            'id': self.id,
+            'status': self.status,
+            'user': self.user.json(),
+            'typepermit':self.typepermit.json(),
+            'status': self.status,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at
+        }
 
 
 

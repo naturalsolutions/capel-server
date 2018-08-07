@@ -120,6 +120,12 @@ def get_all_type_permits(reqUser):
     return jsonify([type_permit.json() for type_permit in TypePermit.query.\
                                 order_by(desc(TypePermit.id)).\
                                 all()])
+@permits.route('/api/permits', methods=['GET'])
+@authenticateAdmin
+def get_all_permits(reqUser):
+    return jsonify([permit.json() for permit in Permit.query.\
+                                order_by(desc(Permit.id)).\
+                                all()])
 
 @permits.route('/api/typepermits', methods=['PATCH'])
 @authenticateAdmin

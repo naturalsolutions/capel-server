@@ -12,20 +12,22 @@ from mail import EmailTemplate, sendmail
 from model import (db, User, Boat, unique_constraint_key, not_null_constraint_key, unique_constraint_error)
 from auth import ( make_digest, generate_token, generate_id_token,authenticate, compare_digest, authenticateAdmin)
 from validators import(validate_boats, users_validate_required)
-
+from datetime import datetime
 users = Blueprint('users', __name__)
 
 @users.route('/api/users', methods=['GET'])
 @authenticate
 def getUsers(reqUser):
     try:
-        term = request.args.get("term")
+        term = request.args.get("search_term")
+        term_date = request.args.get("search_date")
         users = []
         if term:
             users = User.query.filter(User.status != 'deleted').\
                               filter( or_ (User.firstname.like("%" + term + "%"),
                                            User.lastname.like("%" + term + "%"),
-                                           User.email.like("%" + term + "%"))).\
+                                           User.email.like("%" + term + "%"),
+                                           func.date(User.created_at) == datetime.strptime(term_date, "%Y-%m-%d"))).\
                                 order_by(desc(User.id)).\
                                 all()
         else:
@@ -208,6 +210,7 @@ def patchUser(userPatch, reqUser):
                 catch(e)
 
     try:
+        #userPatch['photo'] = str(userPatch['photo'])
         db.session.query(User).filter(User.id == int(userPatch['id'])).update(userPatch)
         db.session.commit()
     # TODO factorize
