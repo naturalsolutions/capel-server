@@ -127,6 +127,14 @@ def get_all_permits(reqUser):
                                 order_by(desc(Permit.id)).\
                                 all()])
 
+@permits.route('/api/me/permits', methods=['GET'])
+@authenticate
+def get_my_permits(reqUser):
+    return jsonify(Permit.query.\
+                   filter(Permit.user_id == reqUser.id).\
+                   order_by(desc(Permit.id)).\
+                   first().json())
+
 @permits.route('/api/typepermits', methods=['PATCH'])
 @authenticateAdmin
 def update_type_permit(reqUser):
