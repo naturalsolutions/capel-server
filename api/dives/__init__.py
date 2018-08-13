@@ -6,7 +6,7 @@ from flask import (Blueprint, jsonify, request, Response, current_app)
 import traceback
 from model import (
     db, User, Boat, Weather, DiveSite, TypeDive, DiveTypeDive, Dive)
-from auth import authenticate
+from auth import authenticate, authenticateAdmin
 from sqlalchemy import func
 
 WEATHER_DATA_MAP = {
@@ -21,9 +21,8 @@ WEATHER_DATA_MAP = {
 dives = Blueprint('dives', __name__)
 
 @dives.route('/api/dives', methods=['GET'])
-@authenticate
-def get_all_dives(reqUser):
-    def get_count_dives(reqUser):
+@authenticateAdmin
+def get_adm_dives(reqUser):
         return jsonify([dive.json() for dive in Dive.query.all()])
 
 @dives.route('/api/dives/count', methods=['GET'])
@@ -33,10 +32,17 @@ def get_count_dives(reqUser):
     return  jsonify(data)
 
 @dives.route('/api/dives/count/bydate', methods=['GET'])
-@authenticate
+@authenticateAdmin
 def get_count_filtred_dives(reqUser):
     data = db.session.query(Dive.date, func.count(Dive.date)).group_by(Dive.date).order_by(Dive.date).all()
     return  jsonify(data)
+"""
+@dives.route('/api/dives/count/bysite', methods=['GET'])
+@authenticateAdmin
+def get_count_filtred_dives_by_sites(reqUser):
+    data = db.session.query(Dive.date, Dive.dive_site.name, func.count(Dive.dive_site.name)).group_by(Dive.dive_site.name).order_by(Dive.dive_site.name).all()
+    return  jsonify(data)
+"""
 
 @dives.route('/api/users/dives', methods=['GET'])
 @authenticate

@@ -92,7 +92,7 @@ def get_permit(id):
 
 @permits.route('/api/permits', methods=['POST'])
 @authenticateAdmin
-def save_permit():
+def save_permit(reqUser):
     payload = request.get_json()
     dive_sites = payload['divesites']
     del payload['divesites']
