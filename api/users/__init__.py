@@ -12,7 +12,7 @@ from mail import EmailTemplate, sendmail
 from model import (db, User, Boat, unique_constraint_key, not_null_constraint_key, unique_constraint_error)
 from auth import ( make_digest, generate_token, generate_id_token,authenticate, compare_digest, authenticateAdmin)
 from validators import(validate_boats, users_validate_required)
-from datetime import datetime
+from datetime import datetime, timedelta
 users = Blueprint('users', __name__)
 
 @users.route('/api/users', methods=['GET'])
@@ -120,7 +120,7 @@ def post_users():
         return jsonify(error={'name': 'invalid_model', 'errors': errors}), 400
 
     emailToken = generate_token(
-        user.id, datetime.timedelta(seconds=60 * 60 * 24),
+        user.id, timedelta(seconds=60 * 60 * 24),
         current_app.config['JWTSECRET'] + b'_emailconfirm').decode('utf-8')
 
     emailBody = EmailTemplate(
