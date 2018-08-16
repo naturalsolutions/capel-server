@@ -23,7 +23,7 @@ dives = Blueprint('dives', __name__)
 @dives.route('/api/dives', methods=['GET'])
 @authenticateAdmin
 def get_adm_dives(reqUser):
-        return jsonify([dive.json() for dive in Dive.query.all()])
+        return jsonify([dive.json() for dive in Dive.query.order_by(Dive.date).all()])
 
 @dives.route('/api/dives/count', methods=['GET'])
 @authenticate
