@@ -242,6 +242,7 @@ class DiveSite(db.Model):
     status = db.Column(db.String())
     privacy = db.Column(db.String())
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id'), nullable=True)
+    heart_id = db.Column(db.Integer(), db.ForeignKey('divesites.id'), nullable=True)
 
 
     def all_sites():
@@ -251,6 +252,7 @@ class DiveSite(db.Model):
                    "referenced, "
                    "latitude, "
                    "longitude, "
+                   "heart_id, "
                    "ST_AsGeoJSON(geom_poly) as geom_poly, "
                    "ST_AsGeoJSON(geom_mp) as geom_mp,"
                     "privacy,"
@@ -271,6 +273,7 @@ class DiveSite(db.Model):
                    "referenced, "
                    "latitude, "
                    "longitude, "
+                    "heart_id, "
                    "ST_AsGeoJSON(geom_poly) as geom_poly, "
                    "ST_AsGeoJSON(geom_mp) as geom_mp,"
                      "privacy"
@@ -290,6 +293,7 @@ class DiveSite(db.Model):
                    "referenced, "
                    "latitude, "
                    "longitude, "
+                   "heart_id, "
                    "ST_AsGeoJSON(geom_poly) as geom_poly, "
                    "ST_AsGeoJSON(geom_mp) as geom_mp,"
                     " privacy "
@@ -333,7 +337,9 @@ class DiveSite(db.Model):
             'latitude': self.latitude,
             'longitude': self.longitude,
             'privacy': self.privacy,
-            'user_id': self.user_id
+            'user_id': self.user_id,
+            'heart_id': self.heart_id
+
         }
 
     def cusJson(self):
@@ -344,7 +350,8 @@ class DiveSite(db.Model):
             'latitude': self.latitude,
             'longitude': self.longitude,
             'privacy': self.privacy,
-            'user_id': self.user_id
+            'user_id': self.user_id,
+            'heart_id': self.heart_id
         }
 
 
