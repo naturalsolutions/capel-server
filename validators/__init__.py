@@ -70,3 +70,18 @@ def users_validate_required(user):
         return {'errors': errors}
 
     return True
+
+
+def offense_validate_required(offense):
+     errors = []
+     for attr in ('start_at', 'end_at', 'user_id', 'status'):
+        if not offense.get(attr, None):
+            errors.append({
+                'name': 'missing_attribute',
+                'table': 'offences',
+                'column': attr
+            })
+     if len( errors ) >= 0:
+        return {'errors': errors}
+
+     return True

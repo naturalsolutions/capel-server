@@ -83,6 +83,7 @@ class User(db.Model):
     role = db.Column(db.String(255), nullable=True)
     photo = db.Column(db.Text())
     boats = db.relationship('Boat', backref='users', lazy='dynamic')
+    offenses = db.relationship('Offense', backref='users', lazy='dynamic')
     diveSites = db.relationship('DiveSite', backref='users', lazy='dynamic')
     dives = db.relationship('Dive', backref='users', lazy='dynamic', foreign_keys='Dive.user_id')
 
@@ -109,6 +110,7 @@ class User(db.Model):
             'photo': self.photo,
             'created_at': self.created_at,
             'boats': [boat.json() for boat in self.boats if boat.status != 'removed'],
+            'offenses': [offense.json() for offense in self.offenses]
         }
 
 
@@ -131,6 +133,28 @@ class Boat(db.Model):
             'id': self.id,
             'name': self.name,
             'matriculation': self.matriculation,
+            'status': self.status
+        }
+
+class Offense(db.Model):
+
+    __tablename__ = 'offenses'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer(), primary_key=True)
+    start_at = db.Column(db.DateTime)
+    end_at = db.Column(db.DateTime)
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id'), nullable=True)
+    status = db.Column(db.Unicode(255), default='enabled')
+
+    def __repr__(self):
+        return '<Offense %r>' % self.id
+
+    def json(self):
+        return {
+            'id': self.id,
+            'start_at': self.start_at,
+            'end_at': self.end_at,
             'status': self.status
         }
 
