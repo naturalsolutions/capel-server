@@ -10,8 +10,8 @@ offenses = Blueprint('offenses', __name__)
 @offenses.route('/api/offenses', methods=['GET'])
 @authenticateAdmin
 def get_offences(reqUser):
-    offences = Offence.query.\
-        order_by(desc(Offence.id)). \
+    offences = Offense.query.\
+        order_by(desc(Offense.id)). \
         all()
     return jsonify([offence.json() for offence in offences])
 

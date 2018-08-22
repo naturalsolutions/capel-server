@@ -12,7 +12,7 @@ from pathlib import Path
 from sqlalchemy import func
 DATA_DIR = None
 from sqlalchemy import or_, desc
-
+from mail import EmailTemplate, sendmail
 permits = Blueprint('permits', __name__)
 
 
@@ -38,10 +38,23 @@ def get_permit(id):
         with open(permit_model, 'wb') as fout:
             fout.write(base64.decodestring((bytes(typePermit.template, 'utf-8'))))
     permit =  Permit()
-    permit.user_id = id
-    permit.typepermit_id = typePermit.id
-    db.session.add(permit)
-    db.session.commit()
+    instance = db.session.query(Permit).filter_by(user_id = id, typepermit_id = typePermit.id).first()
+    if  instance is None:
+        permit.user_id = id
+        permit.typepermit_id = typePermit.id
+        db.session.add(permit)
+        db.session.commit()
+        emailBody = EmailTemplate(
+            template=current_app.config['PERMIT_SIGNED_TEMPLATE'],
+            values={
+                'title': current_app.config['PERMIT_SIGNED_SUBJECT'],
+                'firstname': user.firstname,
+                'serverUrl': current_app.config['SERVER_URL']
+            }).render()
+
+        sendmail(
+            'no-reply@natural-solutions.eu', user.email,
+            current_app.config['PERMIT_SIGNED_SUBJECT'], emailBody)
     if user is not None:
         now = datetime.datetime.utcnow()
         f = '/'.join([
@@ -108,6 +121,17 @@ def save_permit(reqUser):
         db.session.add_all(type_permit_hearts)
         db.session.commit()
 
+        users = User.query.all()
+        emailBody = EmailTemplate(
+            template=current_app.config['NEW_TYPE_PERMIT_TEMPLATE'],
+            values={
+                'title': current_app.config['NEW_TYPE_PERMIT_SUBJECT'],
+                'serverUrl': current_app.config['SERVER_URL']
+            }).render()
+
+        for user in users:
+            sendmail('no-reply@natural-solutions.eu', user.email,
+                     current_app.config['NEW_TYPE_PERMIT_SUBJECT'], emailBody)
         return jsonify('success'), 200
 
     except (Exception) as e:
@@ -130,10 +154,14 @@ def get_all_permits(reqUser):
 @permits.route('/api/me/permits', methods=['GET'])
 @authenticate
 def get_my_permits(reqUser):
-    return jsonify(Permit.query.\
+    permit = Permit.query.\
                    filter(Permit.user_id == reqUser.id).\
                    order_by(desc(Permit.id)).\
-                   first().json())
+                   first();
+    if permit:
+        return jsonify(permit.json())
+    else:
+        return jsonify(None)
 
 @permits.route('/api/typepermits', methods=['PATCH'])
 @authenticateAdmin
@@ -154,7 +182,7 @@ def update_type_permit(reqUser):
         return jsonify('500 error'), 500
 
 
-def extract_permit_dive_sites( type_permit: TypePermit, dive_sites) -> Sequence[TypePermitHearts]:
+def extract_permit_dive_sites( type_permit: TypePermit, dive_sites)-> Sequence[TypePermitHearts]:
     return [
         TypePermitHearts(
             type_permit_id=int(type_permit.id),
