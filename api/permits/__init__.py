@@ -63,7 +63,6 @@ def get_permit(id):
                 '_'.join(['Autorisation', 'PNPC',
                           str(now.year), str(user.firstname), str(user.id)])
                 + '.pdf'])
-
             if not os.path.isfile(f):
                 from .pdfmix import Applicant, PermitView
 
@@ -80,8 +79,6 @@ def get_permit(id):
                         180, 70)
                 else:
                     boats = ('Aucun', 180, 70)
-
-
 
                 permit = PermitView(
                     applicant, boat=boats, site='Parc National de Port-Cros',
