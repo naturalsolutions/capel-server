@@ -39,7 +39,7 @@ def get_permit(id):
             with open(permit_model, 'wb') as fout:
                 fout.write(base64.decodestring((bytes(typePermit.template, 'utf-8'))))
         permit =  Permit()
-        """"
+        """
         instance = db.session.query(Permit).filter_by(user_id = id, typepermit_id = typePermit.id).first()
         if  instance is None:
             permit.user_id = id
@@ -57,7 +57,7 @@ def get_permit(id):
             sendmail(
                 'no-reply@natural-solutions.eu', user.email,
                 current_app.config['PERMIT_SIGNED_SUBJECT'], emailBody)
-         """"
+        """
         if user is not None:
             now = datetime.datetime.utcnow()
             f = '/'.join([
