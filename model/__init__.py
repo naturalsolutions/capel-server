@@ -420,6 +420,7 @@ class Dive(db.Model):
             'times': [[time[0].__str__(), time[1].__str__()] for time in self.times],
             #'typeDives': [d.json() for d in self.dive_types],
             'user': self.user.json(),
+            'shop': self.shop.json() if self.shop else '',
             'dive_site': self.dive_site.cusJson(),
             'divetypedives': [divetypedive.json() for divetypedive in self.divetypedives]
         }
