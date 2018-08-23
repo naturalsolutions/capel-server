@@ -29,79 +29,82 @@ def get_count_users(reqUser):
 
 @permits.route('/api/users/<int:id>/permit.pdf', methods=['GET'])
 def get_permit(id):
-    response = None
-    user = User.query.filter_by(id=id).first_or_404()
-    typePermit = TypePermit.query.filter_by(status='enabled').first()
-    permit_model = str(current_app.config['PERMIT_PATH']+"/"+str(typePermit.id)+".pdf")
-    my_file = Path(permit_model)
-    if not my_file.is_file():
-        with open(permit_model, 'wb') as fout:
-            fout.write(base64.decodestring((bytes(typePermit.template, 'utf-8'))))
-    permit =  Permit()
-    instance = db.session.query(Permit).filter_by(user_id = id, typepermit_id = typePermit.id).first()
-    if  instance is None:
-        permit.user_id = id
-        permit.typepermit_id = typePermit.id
-        db.session.add(permit)
-        db.session.commit()
-        emailBody = EmailTemplate(
-            template=current_app.config['PERMIT_SIGNED_TEMPLATE'],
-            values={
-                'title': current_app.config['PERMIT_SIGNED_SUBJECT'],
-                'firstname': user.firstname,
-                'serverUrl': current_app.config['SERVER_URL']
-            }).render()
+    try:
+        response = None
+        user = User.query.filter_by(id=id).first_or_404()
+        typePermit = TypePermit.query.filter_by(status='enabled').first()
+        permit_model = str(current_app.config['PERMIT_PATH']+"/"+str(typePermit.id)+".pdf")
+        my_file = Path(permit_model)
+        if not my_file.is_file():
+            with open(permit_model, 'wb') as fout:
+                fout.write(base64.decodestring((bytes(typePermit.template, 'utf-8'))))
+        permit =  Permit()
+        instance = db.session.query(Permit).filter_by(user_id = id, typepermit_id = typePermit.id).first()
+        if  instance is None:
+            permit.user_id = id
+            permit.typepermit_id = typePermit.id
+            db.session.add(permit)
+            db.session.commit()
+            emailBody = EmailTemplate(
+                template=current_app.config['PERMIT_SIGNED_TEMPLATE'],
+                values={
+                    'title': current_app.config['PERMIT_SIGNED_SUBJECT'],
+                    'firstname': user.firstname,
+                    'serverUrl': current_app.config['SERVER_URL']
+                }).render()
 
-        sendmail(
-            'no-reply@natural-solutions.eu', user.email,
-            current_app.config['PERMIT_SIGNED_SUBJECT'], emailBody)
-    if user is not None:
-        now = datetime.datetime.utcnow()
-        f = '/'.join([
-            DATA_DIR,
-            '_'.join(['Autorisation', 'PNPC',
-                      str(now.year), str(user.firstname), str(user.id)])
-            + '.pdf'])
+            sendmail(
+                'no-reply@natural-solutions.eu', user.email,
+                current_app.config['PERMIT_SIGNED_SUBJECT'], emailBody)
+        if user is not None:
+            now = datetime.datetime.utcnow()
+            f = '/'.join([
+                DATA_DIR,
+                '_'.join(['Autorisation', 'PNPC',
+                          str(now.year), str(user.firstname), str(user.id)])
+                + '.pdf'])
 
-        if not os.path.isfile(f):
-            from .pdfmix import Applicant, PermitView
+            if not os.path.isfile(f):
+                from .pdfmix import Applicant, PermitView
 
-            applicant = Applicant([
-                (user.firstname + ' ' + user.lastname, 156, 122),
-                (user.phone, 135, 105),
-                (user.email, 100, 88)])
+                applicant = Applicant([
+                    (user.firstname + ' ' + user.lastname, 156, 122),
+                    (user.phone, 135, 105),
+                    (user.email, 100, 88)])
 
-            boats = user.boats.all()
-            if boats not in (None, []):
-                boats = ([', '.join([
-                    ' '.join([boat.name, boat.matriculation])
-                    for boat in user.boats])],
-                    180, 70)
-            else:
-                boats = ('Aucun', 180, 70)
+                boats = user.boats.all()
+                if boats not in (None, []):
+                    boats = ([', '.join([
+                        ' '.join([boat.name, boat.matriculation])
+                        for boat in user.boats])],
+                        180, 70)
+                else:
+                    boats = ('Aucun', 180, 70)
 
 
 
-            permit = PermitView(
-                applicant, boat=boats, site='Parc National de Port-Cros',
-                template=permit_model, save_path=f)
-            permit.save()
-            _elapsed = datetime.datetime.utcnow() - now
-            current_app.logger.debug(
-                'Permit gen: {} ms'.format(_elapsed.total_seconds() * 1000))
+                permit = PermitView(
+                    applicant, boat=boats, site='Parc National de Port-Cros',
+                    template=permit_model, save_path=f)
+                permit.save()
+                _elapsed = datetime.datetime.utcnow() - now
+                current_app.logger.debug(
+                    'Permit gen: {} ms'.format(_elapsed.total_seconds() * 1000))
+    except Exception as e:
+        traceback.print_exc()
 
-        try:
-            with current_app.open_resource(f, 'rb') as pdf:
-                response = Response(pdf.read())
-                response.mimetype = 'application/pdf'
-                response.headers['Content-Disposition'] = (
-                    'attachment; filename={}'.format(os.path.basename(f)))
-                return response
-        except Exception as e:
-            err_type, err_value, tb = sys.exc_info()
-            current_app.logger.warn(
-                ''.join(format_exception_only(err_type, err_value)))
-            return '500 error', 500
+    try:
+        with current_app.open_resource(f, 'rb') as pdf:
+            response = Response(pdf.read())
+            response.mimetype = 'application/pdf'
+            response.headers['Content-Disposition'] = (
+                'attachment; filename={}'.format(os.path.basename(f)))
+            return response
+    except Exception as e:
+        err_type, err_value, tb = sys.exc_info()
+        current_app.logger.warn(
+            ''.join(format_exception_only(err_type, err_value)))
+        return '500 error', 500
 
 @permits.route('/api/permits', methods=['POST'])
 @authenticateAdmin

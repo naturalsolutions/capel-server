@@ -418,7 +418,6 @@ class Dive(db.Model):
             'weather': self.weather.json(),
             'boats': [boat.json() for boat in self.boats],
             'times': [[time[0].__str__(), time[1].__str__()] for time in self.times],
-            #'typeDives': [d.json() for d in self.dive_types],
             'user': self.user.json(),
             'shop': self.shop.json() if self.shop else '',
             'dive_site': self.dive_site.cusJson(),
