@@ -37,7 +37,7 @@ def get_permit(id):
         my_file = Path(permit_model)
         if not my_file.is_file():
             with open(permit_model, 'wb') as fout:
-                fout.write(base64.decodestring((bytes(typePermit.template))))
+                fout.write(base64.decodestring((bytes(typePermit.template, 'utf-8'))))
         permit =  Permit()
         instance = db.session.query(Permit).filter_by(user_id = id, typepermit_id = typePermit.id).first()
         if  instance is None:
