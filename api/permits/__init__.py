@@ -62,7 +62,7 @@ def get_permit(id):
             f = '/'.join([
                 DATA_DIR,
                 '_'.join(['Autorisation', 'PNPC',
-                          str(now.year), str(user.firstname), str(user.id)])
+                          str(now.year), str(user.id)])
                 + '.pdf'])
             if not os.path.isfile(f):
                 from .pdfmix import Applicant, PermitView
