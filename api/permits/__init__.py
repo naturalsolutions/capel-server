@@ -99,6 +99,7 @@ def get_permit(id):
                 'attachment; filename={}'.format(os.path.basename(f)))
             return response
     except Exception as e:
+        traceback.print_exc()
         err_type, err_value, tb = sys.exc_info()
         current_app.logger.warn(
             ''.join(format_exception_only(err_type, err_value)))
