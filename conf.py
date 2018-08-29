@@ -21,8 +21,8 @@ RECOVER_PASSWORD_TEMPLATE = 'assets/recover_password_template.html'
 PERMIT_SIGNED_TEMPLATE = 'assets/permit_signed_template.html'
 NEW_TYPE_PERMIT_TEMPLATE = 'assets/new_type_permit_template.html'
 REMINDER_EMAIL_SUBJECT = 'Votre nouveau mot de passe'
-PERMIT_SIGNED_SUBJECT = 'Autorisation signee'
-NEW_TYPE_PERMIT_SUBJECT = 'Autorisation signee'
+PERMIT_SIGNED_SUBJECT = 'Autorisation signée'
+NEW_TYPE_PERMIT_SUBJECT = 'Nouvelle Autorisation'
 
 REMINDER_EMAIL_TEMPLATE = WELCOME_EMAIL_TEMPLATE
 
