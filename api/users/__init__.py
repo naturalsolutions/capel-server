@@ -211,6 +211,8 @@ def patchUser(userPatch, reqUser):
 
     try:
         #userPatch['photo'] = str(userPatch['photo'])
+        if(userPatch['password']):
+            userPatch['password'] = make_digest(userPatch['password'])
         db.session.query(User).filter(User.id == int(userPatch['id'])).update(userPatch)
         db.session.commit()
     # TODO factorize

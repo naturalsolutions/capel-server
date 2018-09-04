@@ -37,5 +37,5 @@ def save(reqUser):
 @divesites.route('/api/users/owndivesites', methods=['GET'])
 @authenticate
 def getUserDiveSites(reqUser):
-        return jsonify( [diveSite.cusJson() for diveSite in DiveSite.getOwnUserSite(reqUser)])
+        return jsonify([diveSite.cusJson() for diveSite in DiveSite.getOwnUserSite(reqUser)])
 
