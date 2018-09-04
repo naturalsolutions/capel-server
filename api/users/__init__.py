@@ -211,12 +211,18 @@ def patchUser(userPatch, reqUser):
 
     try:
         #userPatch['photo'] = str(userPatch['photo'])
-        if(userPatch['password']):
-            userPatch['password'] = make_digest(userPatch['password'])
+        try:
+            print(userPatch)
+            if 'password' in userPatch:
+                userPatch['password'] = make_digest(userPatch['password'])
+        except NameError:
+            print('index error')
+
         db.session.query(User).filter(User.id == int(userPatch['id'])).update(userPatch)
         db.session.commit()
     # TODO factorize
     except (IntegrityError, Exception) as e:
+        traceback.print_exc()
         catch(e)
 
 def catch(e):
