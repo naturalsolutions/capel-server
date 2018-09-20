@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import os
 from datetime import timedelta
 
@@ -21,7 +24,7 @@ RECOVER_PASSWORD_TEMPLATE = 'assets/recover_password_template.html'
 PERMIT_SIGNED_TEMPLATE = 'assets/permit_signed_template.html'
 NEW_TYPE_PERMIT_TEMPLATE = 'assets/new_type_permit_template.html'
 REMINDER_EMAIL_SUBJECT = 'Votre nouveau mot de passe'
-PERMIT_SIGNED_SUBJECT = 'Autorisation signée'
+PERMIT_SIGNED_SUBJECT = 'Autorisation signee'
 NEW_TYPE_PERMIT_SUBJECT = 'Nouvelle Autorisation'
 
 REMINDER_EMAIL_TEMPLATE = WELCOME_EMAIL_TEMPLATE
@@ -30,5 +33,4 @@ PERMITS_DIR = 'permits'
 
 VALID_PWD_MIN_LEN = 6
 VALID_EMAIL_REGEX = r'^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
-
 
