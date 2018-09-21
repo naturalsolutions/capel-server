@@ -99,6 +99,7 @@ class User(db.Model):
             'category': self.category,
             'address': self.address,
             'zip': self.zip,
+            'website': self.website,
             'common': self.common,
             'city': self.city,
             'company': self.company,
