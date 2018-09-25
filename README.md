@@ -175,3 +175,41 @@ git push heroku master
 
 PS: import geoalchemy2 in last migrate version
  ```
+#### Add heart to divesite
+```sh
+ update divesites d1
+set heart_id = d2.id
+from divesites d2
+where
+st_contains(d2.geom_poly,  ST_GeomFromText('POINT(' || d1.longitude || ' ' ||d1.latitude || ')',4326))
+	  and d1.category='site'
+	  and d2.category='coeur'
+	  and d2.status='enabled';
+ ```    
+ #### Trigger add heart to divesite when added
+ ```sh
+ CREATE OR REPLACE FUNCTION add_heart_to_site_function()
+ RETURNS trigger AS
+$$
+BEGIN
+update divesites d1
+set heart_id = d2.id
+from divesites d2
+where
+st_contains(d2.geom_poly,  ST_GeomFromText('POINT(' || d1.longitude || ' ' ||d1.latitude || ')',4326))
+   and d1.category='site'
+   and d2.category='coeur'
+   and d2.status='enabled'
+   and d1.id = NEW.id;
+
+   RETURN NEW;
+END;
+$$
+LANGUAGE 'plpgsql';
+
+CREATE TRIGGER add_heart_to_site
+ AFTER INSERT
+ ON divesites
+ FOR EACH ROW
+ EXECUTE PROCEDURE add_heart_to_site_function();
+  ```   
