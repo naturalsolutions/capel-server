@@ -113,7 +113,8 @@ class User(db.Model):
             'photo': self.photo,
             'created_at': self.created_at,
             'boats': [boat.json() for boat in self.boats if boat.status != 'removed'],
-            'offenses': [offense.json() for offense in self.offenses]
+            'offenses': [offense.json() for offense in self.offenses],
+            'nbr_dives': len(self.dives)
         }
 
 
