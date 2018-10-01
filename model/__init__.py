@@ -114,7 +114,7 @@ class User(db.Model):
             'created_at': self.created_at,
             'boats': [boat.json() for boat in self.boats if boat.status != 'removed'],
             'offenses': [offense.json() for offense in self.offenses],
-            'nbr_dives': len(self.dives)
+            'nbr_dives': self.dives.count()
         }
 
 
