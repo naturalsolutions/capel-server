@@ -110,4 +110,6 @@ dba.py
 .env
 model/structures.csv
 shell.sh
-
+app.conf
+Pipfile
+Pipfile.lock
