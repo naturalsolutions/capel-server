@@ -1,5 +1,7 @@
 import re
 from flask import (current_app)
+
+
 # TODO facorize with users.validate_boats
 def validate_boats(boats):
     errors = []
@@ -7,7 +9,7 @@ def validate_boats(boats):
     for i, boat in enumerate(boats):
         if boat in (None, ''):
             errors.append(
-                {'name': 'invalid_format', 'key': f'boats{i}'})
+                {'name': 'invalid_format', 'key': 'boats{}'.format(i)})
             continue
 
         elif boat.get('name') in (None, ''):
@@ -44,14 +46,17 @@ def users_validate_required(user):
         })
 
     if len(user['password']) < current_app.config['VALID_PWD_MIN_LEN']:
-        errors.append({
-            'name': 'invalid_password',
-            'key': 'password',
-            'message': 'Password length must be >= ' +
-                                  current_app.config['VALID_PWD_MIN_LEN']
-        })
+        errors.append(
+            {
+                'name': 'invalid_password',
+                'key': 'password',
+                'message': 'Password length must be >= {}'.format(
+                    current_app.config['VALID_PWD_MIN_LEN'])
+            }
+        )
 
-    if not re.match( current_app.config['VALID_EMAIL_REGEX'], user['email'], re.I ):
+    if not re.match(
+            current_app.config['VALID_EMAIL_REGEX'], user['email'], re.I):
         errors.append({
             'table': 'users',
             'name': 'invalid_email',
@@ -73,15 +78,15 @@ def users_validate_required(user):
 
 
 def offense_validate_required(offense):
-     errors = []
-     for attr in ('start_at', 'end_at', 'user_id', 'status'):
+    errors = []
+    for attr in ('start_at', 'end_at', 'user_id', 'status'):
         if not offense.get(attr, None):
             errors.append({
                 'name': 'missing_attribute',
                 'table': 'offences',
                 'column': attr
             })
-     if len( errors ) >= 0:
+    if len( errors ) >= 0:
         return {'errors': errors}
 
-     return True
+    return True
