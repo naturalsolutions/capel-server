@@ -100,6 +100,9 @@ ENV/
 # mypy
 .mypy_cache/
 
+# alembic migration scripts
+migrations/versions
+
 .vscodedb
 .vscode
 credentials.py
@@ -113,3 +116,4 @@ shell.sh
 app.conf
 Pipfile
 Pipfile.lock
+conf.py
