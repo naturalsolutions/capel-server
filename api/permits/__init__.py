@@ -13,6 +13,14 @@ from sqlalchemy import desc
 from mail import EmailTemplate, sendmail
 
 DATA_DIR = None
+tmpl_coords = {
+    'date_and_permitid': (180, 151),
+    'fullname': (156, 122),
+    'phone': (135, 105),
+    'email': (100, 88),
+    'boats': (180, 70)
+}
+# TODO: font + font-size
 permits = Blueprint('permits', __name__)
 
 
@@ -32,24 +40,29 @@ def get_count_users(reqUser):
 @permits.route('/api/users/<int:id>/permit.pdf', methods=['GET'])
 def get_permit(id):  # noqa: A002
     try:
-        response = None
         f = None
+        response = None
         user = User.query.filter_by(id=id).first_or_404()
+
         typePermit = TypePermit.query.filter_by(status='enabled').first()
+
         permit_model = os.path.join(
-            current_app.config['PERMIT_PATH'], str(typePermit.id) + ".pdf")  # noqa: E501
+            current_app.config['PERMIT_PATH'],
+            '.'.join([str(typePermit.id), 'pdf']))
+
         my_file = Path(permit_model)
+        # current_app.logger.debug('permit_model:', permit_model)
         if not my_file.is_file():
             with open(permit_model, 'wb') as fout:
                 fout.write(
                     base64.decodestring(bytes(typePermit.template, 'utf-8')))
-        permit = Permit()
         instance = db.session.query(Permit).filter_by(
             user_id=id, typepermit_id=typePermit.id).first()
         if instance is None:
-            permit.user_id = id
-            permit.typepermit_id = typePermit.id
-            db.session.add(permit)
+            _permit = Permit()
+            _permit.user_id = id
+            _permit.typepermit_id = typePermit.id
+            db.session.add(_permit)
             db.session.commit()
             emailBody = EmailTemplate(
                 template=current_app.config['PERMIT_SIGNED_TEMPLATE'],
@@ -65,37 +78,47 @@ def get_permit(id):  # noqa: A002
 
         if user is not None:
             now = datetime.datetime.utcnow()
-            f = '/'.join([
+            f = os.path.join(
                 DATA_DIR,
-                '_'.join(['Autorisation', 'PNPC',
-                          str(now.year), str(user.id), str(typePermit.id)])
-                + '.pdf'])
+                '_'.join([
+                    'Autorisation', 'PNPC',
+                    str(now.year), str(user.id), str(typePermit.id)]) + '.pdf')
             if not os.path.isfile(f):
                 from .pdfmix import Applicant, PermitView
 
                 applicant = Applicant([
-                    (' '.join([user.firstname, user.lastname]), 156, 122),
-                    (user.phone, 135, 105),
-                    (user.email, 100, 88)])
+                    ('.'.join([
+                        str(instance.updated_at.strftime('%d-%m-%Y')),
+                        str(instance.id)]),
+                     *tmpl_coords['date_and_permitid']),
+                    (' '.join([user.firstname, user.lastname]),
+                     *tmpl_coords['fullname']),
+                    (user.phone, *tmpl_coords['phone']),
+                    (user.email, *tmpl_coords['email'])])
 
                 boats = user.boats.all()
                 if boats not in (None, []):
                     boats = ([', '.join([
                         ' '.join([boat.name, boat.matriculation])
                         for boat in user.boats])],
-                        180, 70)
+                        *tmpl_coords['boats'])
                 else:
-                    boats = ('Aucun', 180, 70)
+                    boats = ('Aucun', *tmpl_coords['boats'])
 
                 permit = PermitView(
                     applicant, boat=boats, site='Parc National de Port-Cros',
                     template=permit_model, save_path=f)
+
+                # current_app.logger.debug('permit filename:', f)
+
                 permit.save()
                 _elapsed = datetime.datetime.utcnow() - now
                 current_app.logger.debug(
                     'Permit gen: {} ms'.format(_elapsed.total_seconds() * 1000))  # noqa: E501
-    except Exception as e:
-        current_app.logger.warn(e)
+    except Exception:
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        current_app.logger.warn(exc_type, fname, exc_tb.tb_lineno)
 
     try:
         with current_app.open_resource(f, 'rb') as pdf:
